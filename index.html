@@ -1,0 +1,86 @@
+---
+layout: base
+
+---
+
+<header class="indextopnav">
+  <h1><img src="/static/img/mapnificent_medium.png" alt="Mapnificent"></h1>
+  <h2>Shows you areas you can reach with public transport in a given time.</h2>
+  <h3>Click on a city below to get started<br/>or <a rel="external" href="http://vimeo.com/16362921">watch a video about how to use Mapnificent!</a></h3>
+  <nav class="index-nav">
+    <ul>
+      <li><a class="toggle" href="#about">About</a></li>
+      <li><a href="#feedback" onclick="UserVoice.Popin.show(); return false;">Give Feedback</a></li>
+      <li><a href="/docs/">API</a></li>
+    </ul>
+  </nav>
+</header>
+
+<div id="index-map"></div>
+
+<script type="text/javascript" charset="utf-8">
+  jQuery("#index-map").height(jQuery(window).height());
+  var mapnificent = {
+    map: new google.maps.Map(document.getElementById("index-map"), {
+      mapTypeId: google.maps.MapTypeId.TERRAIN,
+      zoom: 2,
+      center: new google.maps.LatLng(39.62788622550727,-90.11621093749999)
+    })
+  };
+
+  var closeAll = function(){
+    for (var i=0;i<cities.length; i++){
+      cities[i].infowindow.close();
+    }
+  };
+  for (var i=0;i<cities.length; i++){
+    (function(){
+      var city, markerOptions;
+      city = cities[i];
+      markerOptions = {}
+      markerOptions.position = new google.maps.LatLng(city.lat, city.lng);
+      markerOptions.map = mapnificent.map;
+      markerOptions.title = city.name;
+      city.marker = new google.maps.Marker(markerOptions);
+      city.infowindow = new google.maps.InfoWindow();
+      google.maps.event.addListener(city.marker, 'click', function(){
+        document.location.href = '/'+city.cityid+'/';
+      });
+    }());
+  }
+  jQuery(".toggle").live("click", function(e){
+    e.preventDefault();
+    var obj = jQuery(jQuery(this).attr("href"));
+    if(obj.css("display") == "none"){
+      obj.fadeIn(400);
+    } else {
+      obj.fadeOut(400);
+    }
+  });
+  jQuery("a[rel='external']").click(function(e){
+    e.preventDefault();
+    window.open($(this).attr("href"));
+  });
+  $(window).resize(function(){
+    jQuery("#index-map").height(jQuery(window).height());
+    google.maps.event.trigger("resize", map);
+  })
+  var uservoiceOptions = {
+  key: 'mapnificent',
+  host: 'mapnificent.uservoice.com',
+  forum: '82843',
+  alignment: 'left',
+  background_color:'#76bb00',
+  text_color: 'white',
+  hover_color: '#49c700',
+  lang: 'en',
+  showTab: true
+  };
+  function _loadUserVoice() {
+  var s = document.createElement('script');
+  s.src = ("https:" == document.location.protocol ? "https://" : "http://") + "uservoice.com/javascripts/widgets/tab.js";
+  document.getElementsByTagName('head')[0].appendChild(s);
+  }
+  _loadSuper = window.onload;
+  window.onload = (typeof window.onload != 'function') ? _loadUserVoice : function() { _loadSuper(); _loadUserVoice(); };
+</script>

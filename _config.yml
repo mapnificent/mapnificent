@@ -1,0 +1,13 @@
+baseurl: /
+defaults:
+  -
+    scope:
+      path: ""
+      type: "cities"
+    values:
+      layout: "city"
+
+collections:
+  cities:
+    output: true
+    permalink: /:path/

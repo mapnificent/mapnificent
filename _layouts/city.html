@@ -1,0 +1,168 @@
+---
+layout: base
+
+---
+
+<header id="topnav">
+  <h1 id="about-header"><a href=".">Berlin</a></h1>
+  <span style="position:absolute;top:4px;left:122px;font-size:6pt;color:#aaa;">Beta</span>
+  <nav class="nav">
+    <ul id="topnav-list">
+      <li>
+        <a class="listicon" href="/" id="mapnificent-world">More Cities</a>
+      </li>
+      <li>
+        <a class="listicon toggle" href="#about" id="mapnificent-about">About Mapnificent</a>
+      </li>
+      <li>
+        <a class="listicon toggle" id="mapnificent-settings" href="#configure">Settings</a>
+      </li>
+      <li class="bigger-listitem">
+        <div class="nav-label">Drop me<br/>on the map:</div>
+        <div id="urbanDistance-markerrepo" class="markerrepo">
+          <img id="urbanDistance-markerrepo-marker" class="markerrepo-marker" src="http://gmaps-samples.googlecode.com/svn/trunk/markers/orange/blank.png" alt="New Starting Point"/>
+        </div>
+      </li>
+      <li class="bigger-listitem" id="searcharea">
+        <div class="nav-label">
+          <label for="urbanDistance-search">Search area<br/>with Google:</label>
+        </div>
+        <div class="right">
+          <input type="search" id="urbanDistance-search" size="16" placeholder="e.g. Coffee">
+          <button id="clear-search" style="visibility:hidden">X</button>
+          <img id="urbanDistance-search-indicator" style="visibility:hidden;margin:4px 0 0" src="{{ site.baseurl }}static/img/refresh.gif" alt="Refreshing">
+        </div>
+      </li>
+    </ul>
+  </nav>
+</header>
+
+<div id="map"></div>
+
+<section id="terms-of-use" class="contentoverlay">
+  <a class="close toggle" href="#terms-of-use">close</a>
+  <div style="width:400px;height:350px;overflow:scroll;">
+    {% include tos.html %}
+  </div>
+</section>
+
+<div id="controls" class="controlsoverlay"></div>
+<div id="message" class="shortoverlay" style="display:none"></div>
+
+<div id="copyright-notice">
+  <a class="close toggle" href="#copyright-notice"></a>
+  <div id="search-attribution" style="display:none"></div>
+  <div id="osm-copyright" style="display:none">
+    (c) Map Tiles <a href="http://www.openstreetmap.org/">OpenStreetMap</a>
+  </div>
+  No Warranties: <a class="toggle" href="#terms-of-use">Terms of Use</a>
+  <br/>
+  For trip planning services see links below. Data Copyright Holders are:
+  {{ content }}
+</div>
+
+<script src="{{ site.baseurl }}static/js/mapnificent.js" type="text/javascript" charset="utf-8"></script>
+<script src="{{ site.baseurl }}static/layers/urbandistance.js" type="text/javascript" charset="utf-8"></script>
+<script src="{{ site.baseurl }}static/layers/urbandistance-ui.js" type="text/javascript" charset="utf-8"></script>
+
+<script type="text/javascript" charset="utf-8">
+  var mapnificent;
+  (function(){
+    var search = document.location.search;
+    if (search.indexOf('hidecopyright') !== -1) {
+        $('#copyright-notice').hide();
+    }
+    if (search.indexOf('hidecontrols') !== -1) {
+        $('#controls').hide();
+    }
+    var city = {{ page | jsonify }};
+    var options = {
+      "mapStartCenter": {
+        "lat": city.lat, "lng": city.lng
+      },
+            "mapStartZoom": city.zoom,
+            "dataUrlPrefix": "http://mapnificent.stefanwehrmeyer.com/data/",
+            "layerSettings": {
+              urbanDistance: city.options
+            }
+        };
+    var version = '' + city.version;
+    if (search.indexOf('version') !== -1) {
+        version = search.substring(1).split('=')[1];
+    }
+    options.layerSettings.urbanDistance.cityData = city.cityid + '-' + version;
+    options.layerSettings.urbanDistance.northwest = {"lat": city.northwest.lat, "lng": city.northwest.lng };
+    options.layerSettings.urbanDistance.southeast = {"lat": city.southeast.lat, "lng": city.southeast.lng };
+    options.layerSettings.urbanDistance.copyright = city.content;
+    mapnificent = Mapnificent(options);
+  }());
+  mapnificent.addLayer("urbanDistance", UrbanDistanceUI);
+  var google_init = function(){
+    if(!Mapnificent.isBrowserSupported()){
+      $("#controls").hide();
+      $("#topnav").hide();
+      $("#copyright-notice").hide();
+      $('<div id="browsers">'+
+        '<h2>Your current browser does not seem to support Mapnificent!</h2>'+
+        '<p>Please choose a different one:</p>'+
+        '<table>'+
+        '<tr><td><a href="http://www.google.com/chrome/"><img src="{{ site.baseurl }}static/img/chrome-logo.png" alt="Google Chrome"/><br/>Chrome</a></td>'+
+        '<td><a href="http://getfirefox.com/"><img src="{{ site.baseurl }}static/img/firefox-logo.png" alt="Firefox"/><br/>Firefox</a></td>'+
+        '<td><a href="http://www.opera.com/"><img src="{{ site.baseurl }}static/img/opera-logo.png" alt="Opera"/><br/>Opera</a></td>'+
+        '<td><a href="http://www.apple.com/safari/"><img src="{{ site.baseurl }}static/img/safari-logo.png" alt="Apple Safari"/><br/>Safari</a></td>'+
+        '</tr></table>'+
+        '</div>').appendTo("body");
+      return;
+    }
+    mapnificent.initMap("map");
+    jQuery(".toggle").live("click", function(e){
+      e.preventDefault();
+      var obj = jQuery(jQuery(this).attr("href"));
+      if(obj.css("display") == "none"){
+          obj.fadeIn(400);
+      } else {
+          obj.fadeOut(400);
+      }
+    });
+    for (var i=0;i<cities.length; i++){
+      (function(){
+        var city, markerOptions;
+        city = cities[i];
+        markerOptions = {}
+        markerOptions.position = new google.maps.LatLng(city.lat, city.lng);
+        markerOptions.map = mapnificent.map;
+        markerOptions.title = city.name;
+        city.marker = new google.maps.Marker(markerOptions);
+        city.infowindow = new google.maps.InfoWindow();
+        google.maps.event.addListener(city.marker, 'click', function(){
+            mapnificent.map.panTo(markerOptions.position);
+            city.infowindow.setContent('<a href="/'+city.cityid+'/">'+
+                '<div class="mapnificent-city">'+ city.name +'</div>'+
+            '</a>');
+            city.infowindow.open(mapnificent.map, city.marker);
+        });
+      }());
+    }
+  };
+  google.setOnLoadCallback(google_init);
+  if (document.location.search.indexOf('hidecontrols') === -1) {
+    var uservoiceOptions = {
+      key: 'mapnificent',
+      host: 'mapnificent.uservoice.com', 
+      forum: '82843',
+      alignment: 'left',
+      background_color:'#76bb00', 
+      text_color: 'white',
+      hover_color: '#49c700',
+      lang: 'en',
+      showTab: true
+    };
+    function _loadUserVoice() {
+      var s = document.createElement('script');
+      s.src = ("https:" == document.location.protocol ? "https://" : "http://") + "uservoice.com/javascripts/widgets/tab.js";
+      document.getElementsByTagName('head')[0].appendChild(s);
+    }
+    _loadSuper = window.onload;
+    window.onload = (typeof window.onload != 'function') ? _loadUserVoice : function() { _loadSuper(); _loadUserVoice(); };
+  }
+</script>
