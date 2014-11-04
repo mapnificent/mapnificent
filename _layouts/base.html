@@ -4,62 +4,40 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
     <title>Mapnificent - Dynamic Public Transport Travel Time Maps</title>
-    <link rel="icon" type="image/png" href="{{ site.baseurl }}static/img/favicon.png" />
-    <!--[if IE]>
-    <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
-    <!--[if IE]><script src="http://explorercanvas.googlecode.com/svn/trunk/excanvas.js"></script><![endif]-->
 
+    <link rel="icon" type="image/png" href="{{ site.baseurl }}static/img/favicon.png" />
+    <link href="{{ site.baseurl }}static/vendor/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" type="text/css" media="screen,projection" />
+    <link rel="stylesheet" href="{{ site.baseurl }}static/vendor/leaflet/dist/leaflet.css">
     <link href="{{ site.baseurl }}static/css/screen.css" rel="stylesheet" type="text/css" media="screen,projection" />
+
     <meta name="robots" content="index, follow" />
     <meta name="keywords" content="Mapnificent Isochrone Maps Travel Time Public Transport" />
     <meta name="description" content="Mapnificent shows you areas you can reach with public transport in many cities all over the world." />
-    <script src="http://www.google.com/jsapi?key=ABQIAAAAIIC6NMcawLeTWKvhEPhJEBS7ufCAcqbFhQlEY-ivHsPMyhD9eBQzJs8FQ2bnAYuqogOM1Ytgh7iqRA&amp;sensor=false" type="text/javascript"></script>
-    <script type="text/javascript" charset="utf-8">
-        google.load("maps", "3", {other_params:"sensor=false"});
-        {% if page.cityid %}
-          google.load("search", "1", {nocss:1});
-        {% endif %}
-    </script>
-    <script src="{{ site.baseurl }}static/js/jquery.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="{{ site.baseurl }}static/vendor/jquery/dist/jquery.min.js" type="text/javascript" charset="utf-8"></script>
 
-    {% if page.cityid %}
-      <link type="text/css" href="{{ site.baseurl }}static/css/smoothness/jquery-ui.css" rel="stylesheet" />
-       <script src="/static/js/jquery.address-1.3.js" type="text/javascript" charset="utf-8"></script>
-       <script src="/static/js/jquery-ui.js" type="text/javascript" charset="utf-8"></script>
-    {% endif %}
-
-    <script type="text/javascript">
-      try {
-        var _gaq = _gaq || [];
-        _gaq.push(['_setAccount', 'UA-15128105-1'],
-          ['_setCustomVar', 1, 'City', 'world', 3],
-          ['_trackPageview']);
-      } catch(err) {}
-      (function() {
-        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-      })();
-    </script>
     <script type="text/javascript" charset="utf-8">
-      var cities = [
-        {% for city in site.cities %}
-        {% unless page.cityid == city.cityid %}
-        {name: "{{ city.name }}",
-        cityid: "{{ city.cityid }}",
-        lat: {{ city.lat }},
-        lng: {{ city.lng }}
-        },{% endunless %}
-        {% endfor %}
-        null
-    ];
-    cities = cities.slice(0, cities.length - 1);
+      var Mapnificent_cities = (function(){
+        var cities = [
+          {% for city in site.cities %}
+          {% unless page.cityid == city.cityid %}
+          {name: "{{ city.name }}",
+          cityid: "{{ city.cityid }}",
+          lat: {{ city.lat }},
+          lng: {{ city.lng }}
+          },{% endunless %}
+          {% endfor %}
+          null
+        ];
+        cities = cities.slice(0, cities.length - 1);
+        return cities;
+      }());
     </script>
   </head>
   <body>
 
     {{ content }}
+
+   <script src="/static/vendor/bootstrap/dist/js/bootstrap.min.js" type="text/javascript" charset="utf-8"></script>
 
   </body>
 </html>
