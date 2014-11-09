@@ -1,7 +1,37 @@
-/* globals $, Quadtree, console, L */
+/* globals $, Quadtree, console, L, dcodeIO */
 
 (function(){
 'use strict';
+
+var MAPNIFICENT_PROTO = "package mapnificent;" +
+"message MapnificentNetwork {" +
+"  required string Cityid = 1;" +
+"  message Stop {" +
+"    required double Latitude = 1;" +
+"    required double Longitude = 2;" +
+"    message TravelOption {" +
+"      required int32 Stop = 1;" +
+"      optional int32 TravelTime = 2;" +
+"      optional int32 StayTime = 3;" +
+"      optional string Line = 4;" +
+"      optional int32 WalkTime = 5;" +
+"  }" +
+"    repeated TravelOption TravelOptions = 3;" +
+"}" +
+"  repeated Stop Stops = 2;" +
+"  message Line {" +
+"    required string LineId = 1;" +
+"    message LineTime {" +
+"      required int32 Interval = 1;" +
+"      required int32 Start = 2;" +
+"      optional int32 Stop = 3;" +
+"      optional int32 Weekday = 4;" +
+"  }" +
+"    repeated LineTime LineTimes = 2;" +
+"}" +
+"  repeated Line Lines = 3;" +
+"}";
+
 
 function MapnificentPosition(mapnificent, latlng, time) {
   this.mapnificent = mapnificent;
@@ -158,7 +188,7 @@ MapnificentPosition.prototype.startCalculation = function(){
   var nextStations = this.mapnificent.findNextStations(this.latlng.lat, this.latlng.lng, 1000);
   this.webworker.postMessage({
       fromStations: nextStations.map(function(m){ return m[0].id; }),
-      stations: this.mapnificent.stations,
+      stations: this.mapnificent.stationList,
       lines: this.mapnificent.lines,
       distances: nextStations.map(function(m){ return m[1] / 1000; }),
       reportInterval: 5000,
@@ -291,21 +321,42 @@ Mapnificent.prototype.init = function(){
 };
 
 Mapnificent.prototype.loadData = function(){
-  var dataUrl = this.settings.dataPath + this.settings.cityid + '.json';
-  return $.getJSON(dataUrl);
+  // var dataUrl = this.settings.dataPath + this.settings.cityid + '-' + this.settings.version + '-1.json';
+  var dataUrl = this.settings.baseurl + this.settings.dataPath + this.settings.cityid + '.bin';
+  var protoBuilder = dcodeIO.ProtoBuf.loadProto(MAPNIFICENT_PROTO, "mapnificent.proto");
+
+  var d = $.Deferred();
+
+  var oReq = new XMLHttpRequest();
+  oReq.open("GET", dataUrl, true);
+  oReq.responseType = "arraybuffer";
+
+  oReq.onload = function(oEvent) {
+    var MapnificentNetwork = protoBuilder.build('mapnificent.MapnificentNetwork');
+    console.log('received binary', new Date().getTime());
+    var message = MapnificentNetwork.decode(oEvent.target.response);
+    console.log('decoded message', new Date().getTime());
+    d.resolve(message);
+  };
+
+  oReq.send();
+  return d;
 };
 
 Mapnificent.prototype.prepareData = function(data) {
-  var stations = this.stations = data[0];
-  this.lines = data[1];
-  this.stationList = [];
-  for (var key in stations){
-    stations[key].id = key;
-    stations[key].lat = stations[key].a;
-    stations[key].lng = stations[key].n;
-    delete stations[key].a;
-    delete stations[key].n;
-    this.stationList.push(stations[key]);
+  this.stationList = data.Stops;
+  this.lines = {};
+
+  for (var i = 0; i < this.stationList.length; i += 1){
+    this.stationList[i].id = i;
+    this.stationList[i].lat = data.Stops[i].Latitude;
+    this.stationList[i].lng = data.Stops[i].Longitude;
+  }
+
+  var defaultIntervalKey = this.settings.intervalKey;
+  for (i = 0; i < data.Lines.length; i += 1) {
+    this.lines[data.Lines[i].LineId] = {};
+    this.lines[data.Lines[i].LineId][defaultIntervalKey] = data.Lines[i].LineTimes[0].Interval;
   }
   this.quadtree = Quadtree.create(
     this.settings.southeast.lat, this.settings.northwest.lat,

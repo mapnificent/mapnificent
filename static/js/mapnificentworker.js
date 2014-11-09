@@ -7,7 +7,7 @@ var mapnificentWorker = (function(undefined) {
   var calculateTimes = function(nextStations, lines, secondsPerKm, maxWalkTime) {
     var nsl = nextStations.length,
       uberNextStations = [], count = 0,
-      i, j, arrival, stationId, station, rStation, srl,
+      i, j, arrival, stationId, station, rStation, travelOptionLength,
       stay, seconds, line, nextSeconds, waittime, from, testWalkTime, walkTime;
 
     while (nsl > 0){ // as long as we have next stations to go
@@ -26,7 +26,7 @@ var mapnificentWorker = (function(undefined) {
         walkTime = arrival.walkTime;
         from = arrival.from;
         station = stations[stationId];
-        srl = station.r.length;
+        travelOptionLength = station.TravelOptions.length;
         /* I call the following: same line look ahead
            if you are on line 1 and you arrive at station X,
            only to realize that you arrived at X before in shorter time with another line Z!
@@ -38,15 +38,16 @@ var mapnificentWorker = (function(undefined) {
         */
         if (line !== -1 && stationMap[stationId] !== undefined &&
                            stationMap[stationId] <= seconds){
-          for (j = 0; j < srl; j += 1){
-            rStation = station.r[j];
-            if(rStation.s != from && rStation.l === line){
-              nextSeconds = seconds + rStation.t + stay;
-              if (stationMap[rStation.s] === undefined ||
-                  stationMap[rStation.s] > nextSeconds) {
-                uberNextStations.push({stationId: rStation.s,
-                  line: rStation.l,
-                  stay: rStation.y === undefined ? 0 : rStation.y,
+          for (j = 0; j < travelOptionLength; j += 1){
+            rStation = station.TravelOptions[j];
+            if(rStation.Stop != from && rStation.Line === line){
+              nextSeconds = seconds + rStation.TravelTime + stay;
+              if (stationMap[rStation.Stop] === undefined ||
+                  stationMap[rStation.Stop] > nextSeconds) {
+                uberNextStations.push({
+                  stationId: rStation.Stop,
+                  line: rStation.Line,
+                  stay: rStation.StayTime,
                   seconds: nextSeconds,
                   walkTime: walkTime,
                   from: stationId
@@ -64,16 +65,16 @@ var mapnificentWorker = (function(undefined) {
         // If I arrived here the fastest, record the time
         stationMap[stationId] = seconds;
         // check all connections from this station
-        for (j = 0; j < srl; j += 1) {
-          rStation = station.r[j];
-          if (rStation.s === from) {
+        for (j = 0; j < travelOptionLength; j += 1) {
+          rStation = station.TravelOptions[j];
+          if (rStation.Stop === from) {
             // don't go back, can't possibly be faster
             continue;
           }
-          if (rStation.k !== undefined) { // Walking
+          if (rStation.WalkTime !== null) { // Walking
             /* calculate time to travel the distance, if it takes longer than
               maximum allowed walking time, continue */
-            testWalkTime = rStation.k * secondsPerKm;
+            testWalkTime = rStation.WalkTime * secondsPerKm;
             if (walkTime + testWalkTime > maxWalkTime) {
               continue;
             }
@@ -81,17 +82,17 @@ var mapnificentWorker = (function(undefined) {
             walkTime += testWalkTime;
           } else if (from === -1) {
             // My first station
-            if (lines[rStation.l] === undefined) {
+            if (lines[rStation.Line] === undefined) {
               // line is not in service at current time
               continue;
             }
             // I don't have to wait (design decision)
-            nextSeconds = seconds + rStation.t;
-          } else if (rStation.l === line) {
+            nextSeconds = seconds + rStation.TravelTime;
+          } else if (rStation.Line === line) {
             // Same line! The current transport may pause here for some time
-            nextSeconds = seconds + rStation.t + stay;
+            nextSeconds = seconds + rStation.TravelTime + stay;
           } else {
-            waittime = lines[rStation.l];
+            waittime = lines[rStation.Line];
             if (waittime === undefined) {
               // line is not in service at current time
               continue;
@@ -106,16 +107,16 @@ var mapnificentWorker = (function(undefined) {
             } else {
               waittime = 0;
             }
-            nextSeconds = seconds + waittime + rStation.t;
+            nextSeconds = seconds + waittime + rStation.TravelTime;
             if (nextSeconds < 0){
               nextSeconds = 0; // whut??
             }
           }
           // add to next station list
           uberNextStations.push({
-            stationId: rStation.s,
-            line: rStation.l === undefined ? -1 : rStation.l,
-            stay: rStation.y === undefined ? 0 : rStation.y,
+            stationId: rStation.Stop,
+            line: !rStation.Line ? -1 : rStation.Line,
+            stay: rStation.StayTime,
             seconds: nextSeconds,
             walkTime: walkTime,
             from: stationId
