@@ -45,7 +45,7 @@ layout: base
 
 {% include about.html %}
 
-<script src="{{ site.baseurl }}static/js/vendor/leaflet/leaflet.js" type="text/javascript" charset="utf-8"></script>
+<script src="{{ site.baseurl }}static/vendor/leaflet/dist/leaflet.js" type="text/javascript" charset="utf-8"></script>
 
 <script type="text/javascript">
   $('#map').height($(window).height() - 100);
@@ -65,18 +65,7 @@ layout: base
     }, 1000, 'swing');
   });
 
-  var getTileStreamUrl = function(tilePoint){
-    this._adjustTilePoint(tilePoint);
-    var zoom = this._getZoomForUrl();
-    return L.Util.template(this._url, L.Util.extend({
-      s: this._getSubdomain(tilePoint),
-      z: zoom,
-      x: tilePoint.x,
-      y: Math.pow(2, zoom) - tilePoint.y - 1
-    }, this.options));
-  };
-
-  var tileUrl = 'http://localhost:8888/1.0.0/berlin/{z}/{x}/{y}.png';
+  var tileUrl = 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 
   var map = L.map('map', {
     center: [39.62788622550727, -90.11621093749999],
@@ -84,9 +73,8 @@ layout: base
     scrollWheelZoom: false
   });
   defaultTileLayer = new L.TileLayer(tileUrl, {
-    maxZoom: 17, minZoom: 10,
     attribution: 'Map data CC-BY-SA 2011 <a href="http://openstreetmap.org">OpenStreetMap.org</a> contributors'});
   map.attributionControl.setPrefix("");
-  defaultTileLayer.getTileUrl = getTileStreamUrl;
   map.addLayer(defaultTileLayer);
+
 </script>

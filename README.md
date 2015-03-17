@@ -12,5 +12,3 @@ Then run:
 
     bower install
     jekyll serve -w
-
-Tiles are currently hardcoded to be served from a local tilestream server. Sorry!

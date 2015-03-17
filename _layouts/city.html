@@ -83,18 +83,7 @@ $(function(){
   $('#mapnificent-map').height($(window).height());
   var city = {{ page | jsonify }};
 
-  var getTileStreamUrl = function(tilePoint){
-    this._adjustTilePoint(tilePoint);
-    var zoom = this._getZoomForUrl();
-    return L.Util.template(this._url, L.Util.extend({
-      s: this._getSubdomain(tilePoint),
-      z: zoom,
-      x: tilePoint.x,
-      y: Math.pow(2, zoom) - tilePoint.y - 1
-    }, this.options));
-  };
-
-  var tileUrl = 'http://localhost:8888/1.0.0/berlin/{z}/{x}/{y}.png';
+  var tileUrl = 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 
   var map = L.map('mapnificent-map', {
     center: [city.lat, city.lng],
@@ -105,7 +94,6 @@ $(function(){
     maxZoom: 17, minZoom: 10,
     attribution: 'Map data CC-BY-SA 2011 <a href="http://openstreetmap.org">OpenStreetMap.org</a> contributors'});
   map.attributionControl.setPrefix("");
-  defaultTileLayer.getTileUrl = getTileStreamUrl;
   map.addLayer(defaultTileLayer);
 
   var mapnificent = new Mapnificent(map, city, {
