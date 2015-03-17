@@ -41,14 +41,21 @@ layout: base
       {% endfor %}
     </div>
   </div>
+
 </div>
 
 {% include about.html %}
 
+<footer class="footer">
+  <div class="container">
+    <a href="http://stefanwehrmeyer.com/#impressum">Impressum</a>
+  </div>
+</footer>
+
 <script src="{{ site.baseurl }}static/vendor/leaflet/dist/leaflet.js" type="text/javascript" charset="utf-8"></script>
 
 <script type="text/javascript">
-  $('#map').height($(window).height() - 100);
+  $('#map').height($(window).height() - 200);
 
   $('.smooth-scroll').click(function(e) {
     e.preventDefault();
@@ -68,7 +75,7 @@ layout: base
   var tileUrl = 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 
   var map = L.map('map', {
-    center: [39.62788622550727, -90.11621093749999],
+    center: [20, 11],
     zoom: 2,
     scrollWheelZoom: false
   });

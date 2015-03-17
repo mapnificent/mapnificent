@@ -121,3 +121,7 @@ a.thumbnail.active .caption {
   background-color: #77DB03;
   border-color: #6cca00;
 }
+
+.footer {
+  margin: 3em 0;
+}
