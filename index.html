@@ -6,7 +6,7 @@ layout: base
   <div class="container">
     <div class="jumbotron index-page">
       <h1>
-        <img src="/static/img/mapnificent_big.png" alt="Mapnificent" class="img-responsive">
+        <img src="{{ site.baseurl }}static/img/mapnificent_big.png" alt="Mapnificent" class="img-responsive">
       </h1>
       <p>
         Shows you areas you can reach with public transport in a given time.
@@ -31,7 +31,7 @@ layout: base
       <div class="row">
       {% for city in site.cities %}
         <div class="col-sm-6 col-md-4 col-xs-12">
-          <a href="{{ city.url }}" class="thumbnail">
+          <a href="{{ site.baseurl }}{{ city.url|replace_first:"/","" }}" class="thumbnail">
             <!-- <img src="#" alt="Mapnificent {{ city.cityname }}"/> -->
             <div class="caption">
               <h3>{{ city.cityname }}</h3>
@@ -87,7 +87,7 @@ layout: base
   var marker;
   {% for city in site.cities %}
     marker = L.marker([{{ city.lat }}, {{ city.lng }}]).addTo(map);
-    marker.bindPopup('<h2><a href="{{ city.url }}">{{ city.cityname }}</a></h2>');
+    marker.bindPopup('<h2><a href="{{ city.url|replace_first:"/","" }}">{{ city.cityname }}</a></h2>');
   {% endfor %}
 
 </script>

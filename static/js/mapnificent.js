@@ -242,19 +242,22 @@ MapnificentPosition.prototype.destroy = function(){
   this.redrawTime = 0;
 };
 
-function Mapnificent(map, options){
+function Mapnificent(map, city, options){
   this.map = map;
   this.positions = [];
   this.time = 60 * 10;
+  // FIXME: this is messy
+  this.city = city;
   this.settings = $.extend({
     intervalKey: 'm2',
     baseurl: '/',
-    dataPath: 'data/' + options.cityid + '/',
+    dataPath: 'data/' + city.cityid + '/',
     maxWalkTime: 15 * 60,
     secondsPerKm: 13 * 60,
     maxWalkTravelTime: 60 * 60,
     redrawOnTimeDrag: false
-  }, options);
+  }, city);
+  this.settings = $.extend(this.settings, options);
 }
 
 Mapnificent.prototype.init = function(){
