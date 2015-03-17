@@ -77,4 +77,10 @@ layout: base
   map.attributionControl.setPrefix("");
   map.addLayer(defaultTileLayer);
 
+  var marker;
+  {% for city in site.cities %}
+    marker = L.marker([{{ city.lat }}, {{ city.lng }}]).addTo(map);
+    marker.bindPopup('<h2><a href="{{ city.url }}">{{ city.cityname }}</a></h2>');
+  {% endfor %}
+
 </script>
