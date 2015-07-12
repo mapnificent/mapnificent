@@ -251,7 +251,7 @@ function Mapnificent(map, city, options){
   this.settings = $.extend({
     intervalKey: 'm2',
     baseurl: '/',
-    dataPath: 'data/' + city.cityid + '/',
+    dataPath: city.dataPath || '/cities/data/' + city.cityid + '/',
     maxWalkTime: 15 * 60,
     secondsPerKm: 13 * 60,
     maxWalkTravelTime: 60 * 60,
@@ -288,7 +288,7 @@ Mapnificent.prototype.init = function(){
 };
 
 Mapnificent.prototype.loadData = function(){
-  var dataUrl = this.settings.baseurl + this.settings.dataPath + this.settings.cityid + '-' + this.settings.version + '-1.json';
+  var dataUrl = this.settings.dataPath + this.settings.cityid + '-' + this.settings.version + '-1.json';
   return $.getJSON(dataUrl);
 };
 
