@@ -1,4 +1,4 @@
-baseurl: /mapnificent/
+baseurl: /
 defaults:
   -
     scope:
