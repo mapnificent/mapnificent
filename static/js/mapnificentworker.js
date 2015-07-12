@@ -1,16 +1,18 @@
-'use strict';
+/* global importScripts, Quadtree, postMessage, onmessage */
+
+importScripts('quadtree.js');
 var mapnificentPoster;
+
 var mapnificentWorker = (function(undefined) {
-
-  var stationMap, stations, lines, reportInterval; // "global" variables
-
-  var calculateTimes = function(nextStations, lines, secondsPerKm, maxWalkTime) {
+  'use strict';
+  var calculateTimes = function(nextStations, lines, secondsPerM, maxWalkTime) {
     var nsl = nextStations.length,
       uberNextStations = [], count = 0,
       i, j, arrival, stationId, station, rStation, travelOptionLength,
-      stay, seconds, line, nextSeconds, waittime, from, testWalkTime, walkTime;
+      stay, seconds, line, nextSeconds, waittime, fromStation, testWalkTime, walkTime;
 
     while (nsl > 0){ // as long as we have next stations to go
+      console.log(nsl);
       for (i = 0; i < nsl; i += 1){
         count += 1;
         // Reporting progress to main thread occasionally
@@ -24,7 +26,7 @@ var mapnificentWorker = (function(undefined) {
         seconds = arrival.seconds;
         stay = arrival.stay;
         walkTime = arrival.walkTime;
-        from = arrival.from;
+        fromStation = arrival.fromStation;
         station = stations[stationId];
         travelOptionLength = station.TravelOptions.length;
         /* I call the following: same line look ahead
@@ -40,7 +42,7 @@ var mapnificentWorker = (function(undefined) {
                            stationMap[stationId] <= seconds){
           for (j = 0; j < travelOptionLength; j += 1){
             rStation = station.TravelOptions[j];
-            if(rStation.Stop != from && rStation.Line === line){
+            if(rStation.Stop != fromStation && rStation.Line === line){
               nextSeconds = seconds + rStation.TravelTime + stay;
               if (stationMap[rStation.Stop] === undefined ||
                   stationMap[rStation.Stop] > nextSeconds) {
@@ -50,7 +52,7 @@ var mapnificentWorker = (function(undefined) {
                   stay: rStation.StayTime,
                   seconds: nextSeconds,
                   walkTime: walkTime,
-                  from: stationId
+                  fromStation: stationId
                 });
               }
             }
@@ -64,23 +66,48 @@ var mapnificentWorker = (function(undefined) {
         }
         // If I arrived here the fastest, record the time
         stationMap[stationId] = seconds;
+
+        // Check if walking to nearby station helps
+        var walkNextStations = quadtree.getDistancesInRadius(
+            station.Latitude,
+            station.Longitude,
+            1
+        );
+        var walkCount = 0;
+        for (var m = 0; m < walkNextStations.length; m += 1) {
+          console.log(walkNextStations.length);
+          var walkStationId = walkNextStations[m][0].id;
+          if (walkStationId === stationId) {
+            continue;
+          }
+          testWalkTime = walkNextStations[m][1] * secondsPerM;
+          if (walkTime + testWalkTime > maxWalkTime) {
+            continue;
+          }
+          if (stationMap[walkStationId] <= seconds + testWalkTime){
+            continue;
+          }
+          walkCount += 1;
+          walkTime += testWalkTime;
+          uberNextStations.push({
+            stationId: walkStationId,
+            line: -1,
+            stay: 0,
+            seconds: seconds + testWalkTime,
+            walkTime: walkTime,
+            fromStation: -1,
+          });
+        }
+        console.log('walkCount', walkCount);
+
         // check all connections from this station
         for (j = 0; j < travelOptionLength; j += 1) {
           rStation = station.TravelOptions[j];
-          if (rStation.Stop === from) {
+          if (rStation.Stop === fromStation) {
             // don't go back, can't possibly be faster
             continue;
           }
-          if (rStation.WalkTime !== null) { // Walking
-            /* calculate time to travel the distance, if it takes longer than
-              maximum allowed walking time, continue */
-            testWalkTime = rStation.WalkTime * secondsPerKm;
-            if (walkTime + testWalkTime > maxWalkTime) {
-              continue;
-            }
-            nextSeconds = seconds + testWalkTime;
-            walkTime += testWalkTime;
-          } else if (from === -1) {
+          if (fromStation === -1) {
             // My first station
             if (lines[rStation.Line] === undefined) {
               // line is not in service at current time
@@ -119,7 +146,7 @@ var mapnificentWorker = (function(undefined) {
             stay: rStation.StayTime,
             seconds: nextSeconds,
             walkTime: walkTime,
-            from: stationId
+            fromStation: stationId
           });
         }
       }
@@ -130,15 +157,24 @@ var mapnificentWorker = (function(undefined) {
     return count;
   };
 
+  var stationMap, stations, lines, reportInterval, searchRadius, quadtree;
+
   return function(event) {
     stationMap = {};
     stations = event.data.stations;
     lines = event.data.lines;
     reportInterval = event.data.reportInterval;
-    var fromStations = event.data.fromStations,
-      distances = event.data.distances,
+    searchRadius = event.data.searchRadius;
+    quadtree = Quadtree.create(
+      event.data.selat, event.data.nwlat,
+      event.data.nwlng, event.data.selng
+    );
+    quadtree.insertAll(stations);
+
+    var startLat = event.data.lat,
+      startLng = event.data.lng,
       maxWalkTime = event.data.maxWalkTime,
-      secondsPerKm = event.data.secondsPerKm,
+      secondsPerM = event.data.secondsPerM,
       intervalKey = event.data.intervalKey,
       optimizedLines = {};
 
@@ -149,18 +185,20 @@ var mapnificentWorker = (function(undefined) {
       }
     }
 
-    /* The caller already calculated the next
-      couple of stations (fromStations)
-      and their distance in kilometers (distances)
-      from the starting point
-    */
+    var nextStations = quadtree.getDistancesInRadius(
+        startLat,
+        startLng,
+        searchRadius
+    );
 
     var startStations = [];
-    for (var k = 0; k < fromStations.length; k += 1) {
-      var seconds = distances[k] * secondsPerKm;
+    for (var k = 0; k < nextStations.length; k += 1) {
+      var stationId = nextStations[k][0].id;
+      var distance = nextStations[k][1];
+      var seconds = distance * secondsPerM;
       if (seconds <= maxWalkTime){
         startStations.push({
-          stationId: fromStations[k],
+          stationId: stationId,
           line: -1,  // walking to station
           stay: 0,
           seconds: seconds,
@@ -169,7 +207,7 @@ var mapnificentWorker = (function(undefined) {
         });
       }
     }
-    var count = calculateTimes(startStations, optimizedLines, secondsPerKm, maxWalkTime);
+    var count = calculateTimes(startStations, optimizedLines, secondsPerM, maxWalkTime);
 
     if (reportInterval !== 0) {
       mapnificentPoster({status: 'working', at: count});

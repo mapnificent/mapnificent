@@ -185,16 +185,22 @@ MapnificentPosition.prototype.startCalculation = function(){
   this.renderProgress();
   this.marker.openPopup();
   this.createWorker();
-  var nextStations = this.mapnificent.findNextStations(this.latlng.lat, this.latlng.lng, 1000);
   this.webworker.postMessage({
-      fromStations: nextStations.map(function(m){ return m[0].id; }),
+      lat: this.latlng.lat,
+      lng: this.latlng.lng,
+      // fromStations: nextStations.map(function(m){ return m[0].id; }),
       stations: this.mapnificent.stationList,
       lines: this.mapnificent.lines,
-      distances: nextStations.map(function(m){ return m[1] / 1000; }),
+      // distances: nextStations.map(function(m){ return m[1] / 1000; }),
       reportInterval: 5000,
       intervalKey: this.mapnificent.settings.intervalKey,
       maxWalkTime: this.mapnificent.settings.maxWalkTime,
-      secondsPerKm: this.mapnificent.settings.secondsPerKm,
+      secondsPerM: this.mapnificent.settings.secondsPerKm / 1000,
+      searchRadius: this.mapnificent.settings.initialStationSearchRadius,
+      selat: this.mapnificent.settings.southeast.lat,
+      nwlat: this.mapnificent.settings.northwest.lat,
+      nwlng: this.mapnificent.settings.northwest.lng,
+      selng: this.mapnificent.settings.southeast.lng,
   });
 };
 
@@ -285,6 +291,7 @@ function Mapnificent(map, city, options){
     maxWalkTime: 15 * 60,
     secondsPerKm: 13 * 60,
     maxWalkTravelTime: 60 * 60,
+    initialStationSearchRadius: 1000,
     redrawOnTimeDrag: false
   }, city);
   this.settings = $.extend(this.settings, options);
@@ -363,33 +370,6 @@ Mapnificent.prototype.prepareData = function(data) {
     this.settings.northwest.lng, this.settings.southeast.lng
   );
   this.quadtree.insertAll(this.stationList);
-};
-
-Mapnificent.prototype.distanceBetweenCoordinates = function(lat, lng, slat, slng) {
-  var EARTH_RADIUS = 6371000.0; // in m
-  var toRad = Math.PI / 180.0;
-  return Math.acos(Math.sin(slat * toRad) * Math.sin(lat * toRad) +
-      Math.cos(slat * toRad) * Math.cos(lat * toRad) *
-      Math.cos((lng - slng) * toRad)) * EARTH_RADIUS;
-
-};
-
-Mapnificent.prototype.findNextStations = function(lat, lng, radius) {
-  var stops = this.quadtree.searchInRadius(lat, lng, radius);
-  var results = [];
-  for (var i = 0; i < stops.length; i += 1) {
-    results.push([stops[i], this.distanceBetweenCoordinates(
-      lat, lng, stops[i].lat, stops[i].lng)]);
-  }
-  results.sort(function(a, b){
-    if (a[1] > b[1]) {
-      return 1;
-    } else if (a[1] < b[1]) {
-      return -1;
-    }
-    return 0;
-  });
-  return results;
 };
 
 Mapnificent.prototype.redraw = function(){
