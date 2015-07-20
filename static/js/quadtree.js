@@ -1,7 +1,7 @@
 window.Quadtree = (function(){
 'use strict';
 
-var nodeCapacity = 4;
+var nodeCapacity = 16;
 
 var containsPoint = function(boundary, p) {
   if (p.lng < boundary[0] - boundary[2]) {
