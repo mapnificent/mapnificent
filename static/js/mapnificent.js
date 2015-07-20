@@ -288,7 +288,7 @@ Mapnificent.prototype.init = function(){
 };
 
 Mapnificent.prototype.loadData = function(){
-  var dataUrl = this.settings.dataPath + this.settings.cityid + '-' + this.settings.version + '-1.json';
+  var dataUrl = this.settings.dataPath + this.settings.cityid + '.json';
   return $.getJSON(dataUrl);
 };
 
