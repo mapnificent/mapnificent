@@ -92,7 +92,7 @@ Quadtree.prototype.insert = function(p) {
 
   // Otherwise, the point cannot be inserted for some unknown reason.
   // (which should never happen)
-  throw new Error('Quadtree is broken');
+  console.warn('Quadtree: could not insert', p);
 };
 
 Quadtree.prototype.subDivide = function() {
@@ -142,6 +142,7 @@ Quadtree.prototype.subDivide = function() {
     if (this.southEast.insert(this.points[i])) {
       continue;
     }
+    console.warn('Quadtree: Subdivide - could not insert point', this.points[i]);
   }
   this.points = null;
 };
