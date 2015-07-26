@@ -72,7 +72,7 @@ layout: base
     }, 1000, 'swing');
   });
 
-  var tileUrl = '//{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+  var tileUrl = '{{ site.tileUrl }}';
 
   var map = L.map('map', {
     center: [20, 11],

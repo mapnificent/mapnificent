@@ -1,4 +1,5 @@
 baseurl: /
+tileUrl: "//{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 defaults:
   -
     scope:

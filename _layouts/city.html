@@ -83,7 +83,7 @@ $(function(){
   $('#mapnificent-map').height($(window).height());
   var city = {{ page | jsonify }};
 
-  var tileUrl = '//{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+  var tileUrl = '{{ site.tileUrl }}';
 
   var map = L.map('mapnificent-map', {
     center: [city.lat, city.lng],
