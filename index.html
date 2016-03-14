@@ -30,6 +30,7 @@ layout: base
     <h3>All Mapnificent Cities</h3>
     <div class="row">
       {% for city in site.cities %}
+        {% unless city.hidden %}
         <div class="col-sm-6 col-md-4 col-xs-12">
           <a href="{{ site.baseurl }}{{ city.url|replace_first:"/","" }}" class="thumbnail">
             <!-- <img src="#" alt="Mapnificent {{ city.cityname }}"/> -->
@@ -38,6 +39,7 @@ layout: base
             </div>
           </a>
         </div>
+        {% endunless %}
       {% endfor %}
     </div>
   </div>
@@ -86,8 +88,10 @@ layout: base
 
   var marker;
   {% for city in site.cities %}
-    marker = L.marker([{{ city.lat }}, {{ city.lng }}]).addTo(map);
-    marker.bindPopup('<h2><a href="{{ city.url|replace_first:"/","" }}">{{ city.cityname }}</a></h2>');
+    {% unless city.hidden %}
+      marker = L.marker([{{ city.lat }}, {{ city.lng }}]).addTo(map);
+      marker.bindPopup('<h2><a href="{{ city.url|replace_first:"/","" }}">{{ city.cityname }}</a></h2>');
+    {% endunless %}
   {% endfor %}
 
 </script>
