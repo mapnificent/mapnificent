@@ -251,7 +251,7 @@ function Mapnificent(map, city, options){
   this.settings = $.extend({
     intervalKey: 'm2',
     baseurl: '/',
-    dataPath: city.dataPath || '/cities/data/' + city.cityid + '/',
+    dataPath: city.dataPath || '/data/' + city.cityid + '/',
     maxWalkTime: 15 * 60,
     secondsPerKm: 13 * 60,
     maxWalkTravelTime: 60 * 60,
