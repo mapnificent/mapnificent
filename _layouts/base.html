@@ -20,7 +20,7 @@
         var cities = [
           {% for city in site.cities %}
           {% unless page.cityid == city.cityid %}
-          {name: "{{ city.name }}",
+          {name: "{{ city.cityname }}",
           cityid: "{{ city.cityid }}",
           lat: {{ city.lat }},
           lng: {{ city.lng }}
