@@ -81,7 +81,16 @@ layout: base
 
 $(function(){
   $('#mapnificent-map').height($(window).height());
-  var city = {{ page | jsonify }};
+  var city = {
+    cityid: {{ page.cityid | jsonify }},
+    cityname: {{ page.cityname | jsonify }},
+    lat: {{ page.lat | jsonify }},
+    lng: {{ page.lng | jsonify }},
+    northwest: {{ page.northwest | jsonify }},
+    southeast: {{ page.southeast | jsonify }},
+    options: {{ page.options | jsonify }},
+    zzom: {{ page.zoom | jsonify }}
+  };
 
   var tileUrl = '{{ site.tileUrl }}';
 
