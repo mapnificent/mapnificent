@@ -88,8 +88,8 @@ $(function(){
     lng: {{ page.lng | jsonify }},
     northwest: {{ page.northwest | jsonify }},
     southeast: {{ page.southeast | jsonify }},
-    options: {{ page.options | jsonify }},
-    zzom: {{ page.zoom | jsonify }}
+    options: {{ page.options | jsonify }} || {},
+    zoom: {{ page.zoom | jsonify }}
   };
 
   var tileUrl = '{{ site.tileUrl }}';
