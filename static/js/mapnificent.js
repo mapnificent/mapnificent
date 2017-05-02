@@ -285,7 +285,7 @@ function Mapnificent(map, city, options){
   // FIXME: this is messy
   this.city = city;
   this.settings = $.extend({
-    intervalKey: 'm2',
+    intervalKey: '1-6',
     baseurl: '/',
     dataPath: city.dataPath || '/data/' + city.cityid + '/',
     maxWalkTime: 15 * 60,
@@ -350,6 +350,14 @@ Mapnificent.prototype.loadData = function(){
   return d;
 };
 
+Mapnificent.prototype.getLineTimesByInterval = function(lineTimes) {
+  var result = {};
+  for (var i = 0; i < lineTimes.length; i += 1) {
+    result[lineTimes[i].Weekday + '-' + lineTimes[i].Start] = lineTimes[i].Interval;
+  }
+  return result;
+}
+
 Mapnificent.prototype.prepareData = function(data) {
   this.stationList = data.Stops;
   this.lines = {};
@@ -360,10 +368,9 @@ Mapnificent.prototype.prepareData = function(data) {
     this.stationList[i].lng = data.Stops[i].Longitude;
   }
 
-  var defaultIntervalKey = this.settings.intervalKey;
   for (i = 0; i < data.Lines.length; i += 1) {
-    this.lines[data.Lines[i].LineId] = {};
-    this.lines[data.Lines[i].LineId][defaultIntervalKey] = data.Lines[i].LineTimes[0].Interval;
+    if (!data.Lines[i].LineTimes[0]) { continue; }
+    this.lines[data.Lines[i].LineId] = this.getLineTimesByInterval(data.Lines[i].LineTimes);
   }
   this.quadtree = Quadtree.create(
     this.settings.southeast.lat, this.settings.northwest.lat,
