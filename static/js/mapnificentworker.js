@@ -9,7 +9,8 @@ var mapnificentWorker = (function(undefined) {
     var nsl = nextStations.length,
       uberNextStations = [], count = 0,
       i, j, arrival, stationId, station, rStation, travelOptionLength,
-      stay, seconds, line, nextSeconds, waittime, fromStation, testWalkTime, walkTime;
+      stay, seconds, line, nextSeconds, waittime, fromStation, testWalkTime,
+      walkTime, closeStations = {};
 
     while (nsl > 0){ // as long as we have next stations to go
       console.log(nsl);
@@ -68,37 +69,34 @@ var mapnificentWorker = (function(undefined) {
         stationMap[stationId] = seconds;
 
         // Check if walking to nearby station helps
-        var walkNextStations = quadtree.getDistancesInRadius(
-            station.Latitude,
-            station.Longitude,
-            1
-        );
-        var walkCount = 0;
-        for (var m = 0; m < walkNextStations.length; m += 1) {
-          console.log(walkNextStations.length);
-          var walkStationId = walkNextStations[m][0].id;
-          if (walkStationId === stationId) {
-            continue;
+        var maxWalkDistance = 50;
+        // activate quadtree calc here
+        if (station.walkDistancesSet !== undefined) {
+          var walkNextStations = quadtree.getDistancesInRadius(
+              station.Latitude,
+              station.Longitude,
+              maxWalkDistance
+          );
+          var walkCount = 0;
+          var walkTravelOptions = [];
+
+          for (var m = 0; m < walkNextStations.length; m += 1) {
+            var walkStationId = walkNextStations[m][0].id;
+            if (walkStationId === stationId) {
+              continue;
+            }
+            station.TravelOptions.push({
+              WalkDistance: walkNextStations[m][1],
+              TravelTime: 0,
+              StayTime: 0,
+              Line: false,
+              Stop: walkNextStations[m][0].id
+            })
           }
-          testWalkTime = walkNextStations[m][1] * secondsPerM;
-          if (walkTime + testWalkTime > maxWalkTime) {
-            continue;
-          }
-          if (stationMap[walkStationId] <= seconds + testWalkTime){
-            continue;
-          }
-          walkCount += 1;
-          walkTime += testWalkTime;
-          uberNextStations.push({
-            stationId: walkStationId,
-            line: -1,
-            stay: 0,
-            seconds: seconds + testWalkTime,
-            walkTime: walkTime,
-            fromStation: -1,
-          });
+          station.walkDistancesSet = true;
+          console.log(stationId, 'new travel options', travelOptionLength, station.TravelOptions.length)
+          travelOptionLength = station.TravelOptions.length;
         }
-        console.log('walkCount', walkCount);
 
         // check all connections from this station
         for (j = 0; j < travelOptionLength; j += 1) {
@@ -107,7 +105,17 @@ var mapnificentWorker = (function(undefined) {
             // don't go back, can't possibly be faster
             continue;
           }
-          if (fromStation === -1) {
+          if (rStation.WalkDistance !== null) { // Walking
+            /* calculate time to travel the distance, if it takes longer than
+              maximum allowed walking time, continue */
+            testWalkTime = rStation.WalkDistance * secondsPerM;
+            if (walkTime + testWalkTime > maxWalkTime) {
+              continue;
+            }
+            nextSeconds = seconds + testWalkTime;
+            walkTime += testWalkTime;
+          }
+          else if (fromStation === -1) {
             // My first station
             if (lines[rStation.Line] === undefined) {
               // line is not in service at current time
@@ -143,7 +151,7 @@ var mapnificentWorker = (function(undefined) {
           uberNextStations.push({
             stationId: rStation.Stop,
             line: !rStation.Line ? -1 : rStation.Line,
-            stay: rStation.StayTime,
+            stay: rStation.StayTime || 0,
             seconds: nextSeconds,
             walkTime: walkTime,
             fromStation: stationId
@@ -203,7 +211,7 @@ var mapnificentWorker = (function(undefined) {
           stay: 0,
           seconds: seconds,
           walkTime: seconds,
-          from: -1
+          fromStation: -1
         });
       }
     }

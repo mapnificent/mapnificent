@@ -14,7 +14,7 @@ var MAPNIFICENT_PROTO = "package mapnificent;" +
 "      optional int32 TravelTime = 2;" +
 "      optional int32 StayTime = 3;" +
 "      optional string Line = 4;" +
-"      optional int32 WalkTime = 5;" +
+"      optional int32 WalkDistance = 5;" +
 "  }" +
 "    repeated TravelOption TravelOptions = 3;" +
 "}" +
