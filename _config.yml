@@ -1,5 +1,5 @@
 baseurl: /
-tileUrl: "//{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+tileUrl: "//cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png"
 defaults:
   -
     scope:
