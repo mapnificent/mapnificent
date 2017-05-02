@@ -329,7 +329,7 @@ Mapnificent.prototype.init = function(){
 
 Mapnificent.prototype.loadData = function(){
   // var dataUrl = this.settings.dataPath + this.settings.cityid + '-' + this.settings.version + '-1.json';
-  var dataUrl = this.settings.baseurl + this.settings.dataPath + this.settings.cityid + '.bin';
+  var dataUrl = this.settings.dataPath + this.settings.cityid + '.bin';
   var protoBuilder = dcodeIO.ProtoBuf.loadProto(MAPNIFICENT_PROTO, "mapnificent.proto");
 
   var d = $.Deferred();
