@@ -38,7 +38,7 @@ function MapnificentPosition(mapnificent, latlng, time) {
   this.latlng = latlng;
   this.stationMap = null;
   this.progress = 0;
-  this.time = time === undefined ? 10 * 60 : 0;
+  this.time = time === undefined ? 15 * 60 : 0;
   this.init();
 }
 
@@ -287,7 +287,7 @@ function Mapnificent(map, city, options){
     dataPath: city.dataPath || './',
     maxWalkTime: 15 * 60,
     secondsPerKm: 13 * 60,
-    maxWalkTravelTime: 60 * 60,
+    maxWalkTravelTime: 1.5 * 60 * 60,
     initialStationSearchRadius: 1000,
     redrawOnTimeDrag: false
   }, city);
@@ -313,6 +313,7 @@ Mapnificent.prototype.init = function(){
       self.redrawTime = (new Date().getTime()) - t0;
       console.log('load', self.redrawTime);
     });
+
     self.canvasTileLayer.drawTile = self.drawTile();
     self.map.addLayer(self.canvasTileLayer);
     self.map.on('click', function(e) {
