@@ -174,8 +174,8 @@ var mapnificentWorker = (function(undefined) {
     reportInterval = event.data.reportInterval;
     searchRadius = event.data.searchRadius;
     quadtree = Quadtree.create(
-      event.data.selat, event.data.nwlat,
-      event.data.nwlng, event.data.selng
+      event.data.bounds[0], event.data.bounds[1],
+      event.data.bounds[2], event.data.bounds[3]
     );
     quadtree.insertAll(stations);
 

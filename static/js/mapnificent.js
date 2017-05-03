@@ -197,10 +197,7 @@ MapnificentPosition.prototype.startCalculation = function(){
       maxWalkTime: this.mapnificent.settings.maxWalkTime,
       secondsPerM: this.mapnificent.settings.secondsPerKm / 1000,
       searchRadius: this.mapnificent.settings.initialStationSearchRadius,
-      selat: this.mapnificent.settings.southeast.lat,
-      nwlat: this.mapnificent.settings.northwest.lat,
-      nwlng: this.mapnificent.settings.northwest.lng,
-      selng: this.mapnificent.settings.southeast.lng,
+      bounds: this.mapnificent.settings.bounds
   });
 };
 
@@ -361,20 +358,27 @@ Mapnificent.prototype.getLineTimesByInterval = function(lineTimes) {
 Mapnificent.prototype.prepareData = function(data) {
   this.stationList = data.Stops;
   this.lines = {};
+  var selat = Infinity, nwlat = -Infinity, nwlng = Infinity, selng = -Infinity;
 
   for (var i = 0; i < this.stationList.length; i += 1){
     this.stationList[i].id = i;
     this.stationList[i].lat = data.Stops[i].Latitude;
     this.stationList[i].lng = data.Stops[i].Longitude;
+    selat = Math.min(selat, this.stationList[i].lat);
+    nwlat = Math.max(nwlat, this.stationList[i].lat);
+    selng = Math.max(selng, this.stationList[i].lng);
+    nwlng = Math.min(nwlng, this.stationList[i].lng);
   }
 
   for (i = 0; i < data.Lines.length; i += 1) {
     if (!data.Lines[i].LineTimes[0]) { continue; }
     this.lines[data.Lines[i].LineId] = this.getLineTimesByInterval(data.Lines[i].LineTimes);
   }
+  var b = 0.01;
+  this.settings.bounds = [selat - b, nwlat + b, nwlng - b, selng + b];
   this.quadtree = Quadtree.create(
-    this.settings.southeast.lat, this.settings.northwest.lat,
-    this.settings.northwest.lng, this.settings.southeast.lng
+    this.settings.bounds[0], this.settings.bounds[1],
+    this.settings.bounds[2], this.settings.bounds[3]
   );
   this.quadtree.insertAll(this.stationList);
 };
