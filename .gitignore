@@ -1,2 +1,4 @@
 _site/
 static/vendor/
+.bundle/
+vendor/

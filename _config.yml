@@ -14,5 +14,10 @@ collections:
     output: true
     permalink: /:path/
 
+
 gems:
   - jekyll-redirect-from
+
+# Ignore our `vendor` folder from Bundler
+# https://github.com/jekyll/jekyll/issues/5267#issuecomment-241379902
+exclude: [vendor]
