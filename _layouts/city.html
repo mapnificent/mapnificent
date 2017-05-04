@@ -85,8 +85,7 @@ $(function(){
   var city = {
     cityid: {{ page.cityid | jsonify }},
     cityname: {{ page.cityname | jsonify }},
-    lat: {{ page.lat | jsonify }},
-    lng: {{ page.lng | jsonify }},
+    coordinates: {{ page.coordinates | jsonify }},
     options: {{ page.options | jsonify }} || {},
     zoom: {{ page.zoom | jsonify }}
   };
@@ -94,7 +93,7 @@ $(function(){
   var tileUrl = '{{ site.tileUrl }}';
 
   var map = L.map('mapnificent-map', {
-    center: [city.lat, city.lng],
+    center: [city.coordinates[1], city.coordinates[0]],
     zoom: city.zoom
   });
 

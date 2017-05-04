@@ -319,8 +319,11 @@ Mapnificent.prototype.init = function(){
     self.map.on('click', function(e) {
         self.addPosition(e.latlng);
     });
-    if (self.settings.lat) {
-      self.addPosition(L.latLng(self.settings.lat, self.settings.lng));
+    if (self.settings.coordinates) {
+      self.addPosition(L.latLng(
+        self.settings.coordinates[1],
+        self.settings.coordinates[0]
+      ));
     }
   });
 };

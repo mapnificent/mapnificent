@@ -22,8 +22,7 @@
           {% unless page.cityid == city.cityid %}
           {name: "{{ city.cityname }}",
           cityid: "{{ city.cityid }}",
-          lat: {{ city.lat }},
-          lng: {{ city.lng }}
+          coordinates: {{ city.coordinates | jsonify }},
           },{% endunless %}
           {% endfor %}
           null
