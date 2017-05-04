@@ -13,7 +13,6 @@ var mapnificentWorker = (function(undefined) {
       walkTime, closeStations = {};
 
     while (nsl > 0){ // as long as we have next stations to go
-      console.log(nsl);
       for (i = 0; i < nsl; i += 1){
         count += 1;
         // Reporting progress to main thread occasionally
@@ -94,7 +93,6 @@ var mapnificentWorker = (function(undefined) {
             })
           }
           station.walkDistancesSet = true;
-          console.log(stationId, 'new travel options', travelOptionLength, station.TravelOptions.length)
           travelOptionLength = station.TravelOptions.length;
         }
 

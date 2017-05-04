@@ -301,7 +301,6 @@ Mapnificent.prototype.init = function(){
     self.prepareData(data);
     self.canvasTileLayer = L.tileLayer.canvas();
     self.canvasTileLayer.on('loading', function(){
-      console.log('loading');
       self.tilesLoading = true;
       t0 = new Date().getTime();
     });
@@ -311,7 +310,7 @@ Mapnificent.prototype.init = function(){
         self.redraw();
       }
       self.redrawTime = (new Date().getTime()) - t0;
-      console.log('load', self.redrawTime);
+      console.log('reloading tile layer took', self.redrawTime, 'ms');
     });
 
     self.canvasTileLayer.drawTile = self.drawTile();
