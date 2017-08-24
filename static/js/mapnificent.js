@@ -3,36 +3,6 @@
 (function(){
 'use strict';
 
-var MAPNIFICENT_PROTO = "package mapnificent;" +
-"message MapnificentNetwork {" +
-"  required string Cityid = 1;" +
-"  message Stop {" +
-"    required double Latitude = 1;" +
-"    required double Longitude = 2;" +
-"    message TravelOption {" +
-"      required int32 Stop = 1;" +
-"      optional int32 TravelTime = 2;" +
-"      optional int32 StayTime = 3;" +
-"      optional string Line = 4;" +
-"      optional int32 WalkDistance = 5;" +
-"  }" +
-"    repeated TravelOption TravelOptions = 3;" +
-"}" +
-"  repeated Stop Stops = 2;" +
-"  message Line {" +
-"    required string LineId = 1;" +
-"    message LineTime {" +
-"      required int32 Interval = 1;" +
-"      required int32 Start = 2;" +
-"      optional int32 Stop = 3;" +
-"      optional int32 Weekday = 4;" +
-"  }" +
-"    repeated LineTime LineTimes = 2;" +
-"}" +
-"  repeated Line Lines = 3;" +
-"}";
-
-
 function MapnificentPosition(mapnificent, latlng, time) {
   this.mapnificent = mapnificent;
   this.latlng = latlng;
@@ -328,8 +298,15 @@ Mapnificent.prototype.init = function(){
 };
 
 Mapnificent.prototype.loadData = function(){
-  var dataUrl = this.settings.dataPath + this.settings.cityid + '.bin';
-  var protoBuilder = dcodeIO.ProtoBuf.loadProto(MAPNIFICENT_PROTO, "mapnificent.proto");
+  var dataUrl = this.settings.dataPath + this.settings.cityid;
+  if (window.location.search.indexOf("debug") !== -1) {
+    dataUrl += '__debug';
+  }
+  dataUrl += '.bin';
+
+  const MAPNIFICENT_PROTO = {"nested":{"mapnificent":{"nested":{"MapnificentNetwork":{"fields":{"Cityid":{"type":"string","id":1},"Stops":{"rule":"repeated","type":"Stop","id":2},"Lines":{"rule":"repeated","type":"Line","id":3}},"nested":{"Stop":{"fields":{"Latitude":{"type":"double","id":1},"Longitude":{"type":"double","id":2},"TravelOptions":{"rule":"repeated","type":"TravelOption","id":3},"Name":{"type":"string","id":4}},"nested":{"TravelOption":{"fields":{"Stop":{"type":"int32","id":1},"TravelTime":{"type":"int32","id":2},"StayTime":{"type":"int32","id":3},"Line":{"type":"string","id":4},"WalkDistance":{"type":"int32","id":5}}}}},"Line":{"fields":{"LineId":{"type":"string","id":1},"LineTimes":{"rule":"repeated","type":"LineTime","id":2},"Name":{"type":"string","id":3}},"nested":{"LineTime":{"fields":{"Interval":{"type":"int32","id":1},"Start":{"type":"int32","id":2},"Stop":{"type":"int32","id":3},"Weekday":{"type":"int32","id":4}}}}}}}}}}};
+
+  var protoRoot = protobuf.Root.fromJSON(MAPNIFICENT_PROTO);
 
   var d = $.Deferred();
 
@@ -338,9 +315,9 @@ Mapnificent.prototype.loadData = function(){
   oReq.responseType = "arraybuffer";
 
   oReq.onload = function(oEvent) {
-    var MapnificentNetwork = protoBuilder.build('mapnificent.MapnificentNetwork');
+    var MapnificentNetwork = protoRoot.lookupType('mapnificent.MapnificentNetwork');
     console.log('received binary', new Date().getTime());
-    var message = MapnificentNetwork.decode(oEvent.target.response);
+    var message = MapnificentNetwork.decode(new Uint8Array(oEvent.target.response));
     console.log('decoded message', new Date().getTime());
     d.resolve(message);
   };
