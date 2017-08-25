@@ -90,8 +90,10 @@ layout: base
   {% for city in site.cities %}
     {% unless city.hidden %}
       coords = {{ city.coordinates | jsonify }};
-      marker = L.marker([coords[1], coords[0]]).addTo(map);
-      marker.bindPopup('<h2><a href="{{ city.url|replace_first:"/","" }}">{{ city.cityname }}</a></h2>');
+      if (coords) {
+        marker = L.marker([coords[1], coords[0]]).addTo(map);
+        marker.bindPopup('<h2><a href="{{ city.url|replace_first:"/","" }}">{{ city.cityname }}</a></h2>');
+      }
     {% endunless %}
   {% endfor %}
 
