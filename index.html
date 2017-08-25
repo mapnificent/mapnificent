@@ -75,7 +75,7 @@ layout: base
   });
 
   var tileUrl = '{{ site.tileUrl }}';
-
+  L.Icon.Default.imagePath = '{{ site.baseurl }}static/vendor/leaflet/dist/images/';
   var map = L.map('map', {
     center: [20, 11],
     zoom: 2,

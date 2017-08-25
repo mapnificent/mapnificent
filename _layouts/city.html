@@ -92,6 +92,7 @@ $(function(){
 
   var tileUrl = '{{ site.tileUrl }}';
 
+  L.Icon.Default.imagePath = '{{ site.baseurl }}static/vendor/leaflet/dist/images/';
   var map = L.map('mapnificent-map', {
     center: [city.coordinates[1], city.coordinates[0]],
     zoom: city.zoom
