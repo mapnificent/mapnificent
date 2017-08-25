@@ -5,12 +5,12 @@ var mapnificentPoster;
 
 var mapnificentWorker = (function(undefined) {
   'use strict';
-  var calculateTimes = function(nextStations, lines, secondsPerM, maxWalkTime) {
+  var calculateTimes = function(nextStations, lines, secondsPerM, maxWalkTime, debug) {
     var nsl = nextStations.length,
       uberNextStations = [], count = 0,
       i, j, arrival, stationId, station, rStation, travelOptionLength,
-      stay, seconds, line, nextSeconds, waittime, fromStation, testWalkTime,
-      walkTime, closeStations = {};
+      stay, seconds, line, nextSeconds, nextwalkTime, waittime, fromStation,
+      testWalkTime, walkTime, closeStations = {}, trace, next;
 
     while (nsl > 0){ // as long as we have next stations to go
       for (i = 0; i < nsl; i += 1){
@@ -29,11 +29,24 @@ var mapnificentWorker = (function(undefined) {
         fromStation = arrival.fromStation;
         station = stations[stationId];
         travelOptionLength = station.TravelOptions.length;
-        /* I call the following: same line look ahead
+        if (debug) {
+          trace = arrival.trace;
+          if (trace === undefined) {
+            trace = []
+          }
+          trace.push({
+            from: fromStation,
+            to: stationId,
+            time: seconds,
+            walkTime: walkTime,
+            line: line,
+          });
+        }
+        /* ## Same line look ahead
            if you are on line 1 and you arrive at station X,
-           only to realize that you arrived at X before in shorter time with another line Z!
+           only to realize that you arrived at X before in shorter time with another line 2!
            No despair, your arrival migth be still of use!
-           Since anyone who arrived here before with line Z has to wait for your line 1
+           Since anyone who arrived here before with line 2 has to wait for your line 1
            Therefore you still might be faster to arrive at the next stop on line 1,
            because you don't have to wait, you are on line 1 (only wait = stay time)
            Check if you can arrive faster at the next station of your line and if so, travel there.
@@ -46,14 +59,18 @@ var mapnificentWorker = (function(undefined) {
               nextSeconds = seconds + rStation.TravelTime + stay;
               if (stationMap[rStation.Stop] === undefined ||
                   stationMap[rStation.Stop] > nextSeconds) {
-                uberNextStations.push({
+                next = {
                   stationId: rStation.Stop,
                   line: rStation.Line,
                   stay: rStation.StayTime,
                   seconds: nextSeconds,
                   walkTime: walkTime,
                   fromStation: stationId
-                });
+                }
+                if (debug) {
+                  next.trace = trace.slice();
+                }
+                uberNextStations.push(next);
               }
             }
           }
@@ -66,6 +83,9 @@ var mapnificentWorker = (function(undefined) {
         }
         // If I arrived here the fastest, record the time
         stationMap[stationId] = seconds;
+        if (debug) {
+          debugMap[stationId] = trace.slice();
+        }
 
         // Check if walking to nearby station helps
         var maxWalkDistance = 50;
@@ -99,11 +119,12 @@ var mapnificentWorker = (function(undefined) {
         // check all connections from this station
         for (j = 0; j < travelOptionLength; j += 1) {
           rStation = station.TravelOptions[j];
+          nextwalkTime = walkTime;
           if (rStation.Stop === fromStation) {
             // don't go back, can't possibly be faster
             continue;
           }
-          if (rStation.WalkDistance !== null) { // Walking
+          if (rStation.WalkDistance !== undefined) { // Walking
             /* calculate time to travel the distance, if it takes longer than
               maximum allowed walking time, continue */
             testWalkTime = rStation.WalkDistance * secondsPerM;
@@ -111,7 +132,7 @@ var mapnificentWorker = (function(undefined) {
               continue;
             }
             nextSeconds = seconds + testWalkTime;
-            walkTime += testWalkTime;
+            nextwalkTime += testWalkTime;
           }
           else if (fromStation === -1) {
             // My first station
@@ -146,14 +167,19 @@ var mapnificentWorker = (function(undefined) {
             }
           }
           // add to next station list
-          uberNextStations.push({
+          next = {
             stationId: rStation.Stop,
             line: !rStation.Line ? -1 : rStation.Line,
             stay: rStation.StayTime || 0,
             seconds: nextSeconds,
-            walkTime: walkTime,
+            walkTime: nextwalkTime,
             fromStation: stationId
-          });
+          };
+
+          if (debug) {
+            next.trace = trace.slice();
+          }
+          uberNextStations.push(next);
         }
       }
       nextStations = uberNextStations;
@@ -163,7 +189,7 @@ var mapnificentWorker = (function(undefined) {
     return count;
   };
 
-  var stationMap, stations, lines, reportInterval, searchRadius, quadtree;
+  var stationMap, debugMap, stations, lines, reportInterval, searchRadius, quadtree;
 
   return function(event) {
     stationMap = {};
@@ -182,7 +208,12 @@ var mapnificentWorker = (function(undefined) {
       maxWalkTime = event.data.maxWalkTime,
       secondsPerM = event.data.secondsPerM,
       intervalKey = event.data.intervalKey,
+      debug = event.data.debug,
       optimizedLines = {};
+
+    if (debug) {
+      debugMap = {};
+    }
 
     // throw away any timezones that are not the requested ones
     for(var line in lines){
@@ -213,12 +244,16 @@ var mapnificentWorker = (function(undefined) {
         });
       }
     }
-    var count = calculateTimes(startStations, optimizedLines, secondsPerM, maxWalkTime);
+    var count = calculateTimes(startStations, optimizedLines, secondsPerM, maxWalkTime, debug);
 
     if (reportInterval !== 0) {
       mapnificentPoster({status: 'working', at: count});
     }
-    mapnificentPoster({status: 'done', stationMap: stationMap});
+    var result = {status: 'done', stationMap: stationMap};
+    if (debug) {
+      result.debugMap = debugMap;
+    }
+    mapnificentPoster(result);
   };
 }());
 
