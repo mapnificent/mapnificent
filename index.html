@@ -75,7 +75,7 @@ layout: base
   });
 
   var tileUrl = '{{ site.tileUrl }}';
-
+  L.Icon.Default.imagePath = '{{ site.baseurl }}static/vendor/leaflet/dist/images/';
   var map = L.map('map', {
     center: [20, 11],
     zoom: 2,
@@ -86,11 +86,14 @@ layout: base
   map.attributionControl.setPrefix("");
   map.addLayer(defaultTileLayer);
 
-  var marker;
+  var marker, coords;
   {% for city in site.cities %}
     {% unless city.hidden %}
-      marker = L.marker([{{ city.lat }}, {{ city.lng }}]).addTo(map);
-      marker.bindPopup('<h2><a href="{{ city.url|replace_first:"/","" }}">{{ city.cityname }}</a></h2>');
+      coords = {{ city.coordinates | jsonify }};
+      if (coords) {
+        marker = L.marker([coords[1], coords[0]]).addTo(map);
+        marker.bindPopup('<h2><a href="{{ city.url|replace_first:"/","" }}">{{ city.cityname }}</a></h2>');
+      }
     {% endunless %}
   {% endfor %}
 

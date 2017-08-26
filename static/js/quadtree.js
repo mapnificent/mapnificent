@@ -1,4 +1,4 @@
-window.Quadtree = (function(){
+var Quadtree = (function(){
 'use strict';
 
 var nodeCapacity = 32;
@@ -155,6 +155,36 @@ Quadtree.prototype.searchInRadius = function(lat, lng, radius) {
   var y2 = lat - (radius / earthRadius * 180.0 / Math.PI);
   // FIXME: this is bounding box search, not radial
   return this.searchArea([lng, lat, Math.abs(x1-x2)/2.0, Math.abs(y1-y2)/2.0]);
+};
+
+Quadtree.prototype.distanceBetweenCoordinates = function(lat, lng, slat, slng) {
+  var EARTH_RADIUS = 6371000.0; // in m
+  var toRad = Math.PI / 180.0;
+  return Math.acos(Math.sin(slat * toRad) * Math.sin(lat * toRad) +
+      Math.cos(slat * toRad) * Math.cos(lat * toRad) *
+      Math.cos((lng - slng) * toRad)) * EARTH_RADIUS;
+
+};
+
+Quadtree.prototype.getDistancesInRadius = function(lat, lng, radius, sorted) {
+  sorted = (sorted === undefined) || sorted;
+  var stops = this.searchInRadius(lat, lng, radius);
+  var results = [];
+  for (var i = 0; i < stops.length; i += 1) {
+    results.push([stops[i], this.distanceBetweenCoordinates(
+      lat, lng, stops[i].lat, stops[i].lng)]);
+  }
+  if (sorted) {
+    results.sort(function(a, b){
+      if (a[1] > b[1]) {
+        return 1;
+      } else if (a[1] < b[1]) {
+        return -1;
+      }
+      return 0;
+    });
+  }
+  return results;
 };
 
 Quadtree.prototype.searchArea = function(boundary) {

@@ -3,7 +3,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
-    <title>Mapnificent - Dynamic Public Transport Travel Time Maps</title>
+    <title>{% if page.title %}{{ page.title }} – {% endif %}Mapnificent – Dynamic Public Transport Travel Time Maps</title>
 
     <link rel="icon" type="image/png" href="{{ site.baseurl }}static/img/favicon.png" />
     <link href="{{ site.baseurl }}static/vendor/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" type="text/css" media="screen,projection" />
@@ -22,8 +22,7 @@
           {% unless page.cityid == city.cityid %}
           {name: "{{ city.cityname }}",
           cityid: "{{ city.cityid }}",
-          lat: {{ city.lat }},
-          lng: {{ city.lng }}
+          coordinates: {{ city.coordinates | jsonify }},
           },{% endunless %}
           {% endfor %}
           null

@@ -73,7 +73,8 @@ layout: base
 
 
 <script src="{{ site.baseurl }}static/vendor/leaflet/dist/leaflet.js" type="text/javascript" charset="utf-8"></script>
-
+<script src="{{ site.baseurl }}static/vendor/bytebuffer/dist/ByteBufferAB.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="{{ site.baseurl }}static/vendor/protobuf/dist/ProtoBuf.js" type="text/javascript" charset="utf-8"></script>
 <script src="{{ site.baseurl }}static/js/quadtree.js" type="text/javascript" charset="utf-8"></script>
 <script src="{{ site.baseurl }}static/js/mapnificent.js" type="text/javascript" charset="utf-8"></script>
 
@@ -84,23 +85,21 @@ $(function(){
   var city = {
     cityid: {{ page.cityid | jsonify }},
     cityname: {{ page.cityname | jsonify }},
-    lat: {{ page.lat | jsonify }},
-    lng: {{ page.lng | jsonify }},
-    northwest: {{ page.northwest | jsonify }},
-    southeast: {{ page.southeast | jsonify }},
+    coordinates: {{ page.coordinates | jsonify }},
     options: {{ page.options | jsonify }} || {},
     zoom: {{ page.zoom | jsonify }}
   };
 
   var tileUrl = '{{ site.tileUrl }}';
 
+  L.Icon.Default.imagePath = '{{ site.baseurl }}static/vendor/leaflet/dist/images/';
   var map = L.map('mapnificent-map', {
-    center: [city.lat, city.lng],
+    center: [city.coordinates[1], city.coordinates[0]],
     zoom: city.zoom
   });
 
   defaultTileLayer = new L.TileLayer(tileUrl, {
-    maxZoom: 17, minZoom: 10,
+    maxZoom: 17, minZoom: 8,
     attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attribution">CARTO</a>'});
   map.attributionControl.setPrefix("");
   map.addLayer(defaultTileLayer);
