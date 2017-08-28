@@ -249,7 +249,7 @@ var mapnificentWorker = (function(undefined) {
     if (reportInterval !== 0) {
       mapnificentPoster({status: 'working', at: count});
     }
-    var result = {status: 'done', stationMap: stationMap};
+    var result = {status: 'done', stationMap: stationMap, count: count};
     if (debug) {
       result.debugMap = debugMap;
     }

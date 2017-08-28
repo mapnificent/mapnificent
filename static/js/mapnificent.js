@@ -92,7 +92,7 @@ MapnificentPosition.prototype.updateControls = function(){
   var minutesTime = Math.round(this.time / 60);
 
   var input = $('<input type="range">').attr({
-    max: Math.round(this.mapnificent.settings.maxWalkTravelTime / 60),
+    max: Math.round(this.mapnificent.settings.options.maxWalkTravelTime / 60),
     min: 0,
     value: minutesTime
   }).on('change', function(){
@@ -137,6 +137,7 @@ MapnificentPosition.prototype.workerMessage = function() {
       self.updateProgress();
     }
     else if (event.data.status === 'done') {
+      console.log('Count loops', event.data.count);
       self.updateProgress(100);
       self.updateControls();
       self.stationMap = event.data.stationMap;
@@ -247,7 +248,7 @@ MapnificentPosition.prototype.destroy = function(){
   this.redrawTime = 0;
 };
 
-function Mapnificent(map, city, options){
+function Mapnificent(map, city, pageConfig){
   this.map = map;
   this.positions = [];
   this.time = 60 * 10;
@@ -259,12 +260,14 @@ function Mapnificent(map, city, options){
     dataPath: city.dataPath || './',
     maxWalkTime: 15 * 60,
     secondsPerKm: 13 * 60,
-    maxWalkTravelTime: 1.5 * 60 * 60,
     initialStationSearchRadius: 1000,
     redrawOnTimeDrag: false,
     debug: window.location.search.indexOf("debug") !== -1,
   }, city);
-  this.settings = $.extend(this.settings, options);
+  this.settings.options = $.extend({
+    maxWalkTravelTime: 1.5 * 60 * 60,
+  }, this.settings.options)
+  this.settings = $.extend(this.settings, pageConfig);
 }
 
 Mapnificent.prototype.init = function(){
