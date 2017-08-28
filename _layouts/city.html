@@ -73,6 +73,7 @@ layout: base
 
 
 <script src="{{ site.baseurl }}static/vendor/leaflet/dist/leaflet.js" type="text/javascript" charset="utf-8"></script>
+<script src="{{ site.baseurl }}static/vendor/leaflet-hash/leaflet-hash.js" type="text/javascript" charset="utf-8"></script>
 <script src="{{ site.baseurl }}static/vendor/bytebuffer/dist/ByteBufferAB.min.js" type="text/javascript" charset="utf-8"></script>
 <script src="{{ site.baseurl }}static/vendor/protobuf/dist/ProtoBuf.js" type="text/javascript" charset="utf-8"></script>
 <script src="{{ site.baseurl }}static/js/quadtree.js" type="text/javascript" charset="utf-8"></script>
@@ -97,6 +98,8 @@ $(function(){
     center: [city.coordinates[1], city.coordinates[0]],
     zoom: city.zoom
   });
+
+  var hash = new L.Hash(map);
 
   defaultTileLayer = new L.TileLayer(tileUrl, {
     maxZoom: 17, minZoom: 8,
