@@ -3,6 +3,20 @@
 (function(){
 'use strict';
 
+function getProgressBar(percent) {
+  return $('<div class="progress">' +
+    '<div class="progress-bar progress-bar-mapnificent"  role="progressbar" aria-valuenow="' + percent + '" aria-valuemin="0" aria-valuemax="100" style="width: ' + percent + '%">' +
+    '<span class="sr-only">' + percent + '% Complete</span>' +
+  '</div></div>');
+}
+function updateProgressBar(progressBar, percent) {
+  progressBar.find('.progress-bar').attr({
+    'aria-valuenow': percent,
+    style: 'width: ' + percent + '%'
+  });
+  progressBar.find('.sr-only').text(percent + '% Complete');
+}
+
 function MapnificentPosition(mapnificent, latlng, time) {
   this.mapnificent = mapnificent;
   this.latlng = latlng;
@@ -52,11 +66,7 @@ MapnificentPosition.prototype.updateProgress = function(percent){
   }
   this.marker.setOpacity(Math.max(0.5, percent / 100));
   $(this.popup.getContent()).find('.progress').addClass(addClass);
-  $(this.popup.getContent()).find('.progress-bar').attr({
-    'aria-valuenow': percent,
-    style: 'width: ' + percent + '%'
-  });
-  $(this.popup.getContent()).find('.sr-only').text(percent + '% Complete');
+  updateProgressBar($(this.popup.getContent()), percent);
   this.popup.update();
 };
 
@@ -64,10 +74,7 @@ MapnificentPosition.prototype.updateProgress = function(percent){
 MapnificentPosition.prototype.renderProgress = function() {
   var div = $('<div class="position-control">'), self = this;
   var percent = 0;
-  var progressBar = $('<div class="progress">' +
-    '<div class="progress-bar progress-bar-mapnificent"  role="progressbar" aria-valuenow="' + percent + '" aria-valuemin="0" aria-valuemax="100" style="width: ' + percent + '%">' +
-    '<span class="sr-only">' + percent + '% Complete</span>' +
-  '</div></div>');
+  var progressBar = getProgressBar(percent);
   div.append(progressBar);
   var removeSpan = $('<span class="position-remove glyphicon glyphicon-trash pull-right">').on('click', function(){
     self.mapnificent.removePosition(self);
@@ -345,6 +352,11 @@ Mapnificent.prototype.loadData = function(){
 
   var d = $.Deferred();
 
+  var loadProgress = $('#load-progress');
+  var progressBar = getProgressBar(0.0);
+  loadProgress.find('.modal-body').html(progressBar);
+  loadProgress.modal('show');
+
   var oReq = new XMLHttpRequest();
   oReq.open("GET", dataUrl, true);
   oReq.responseType = "arraybuffer";
@@ -354,8 +366,18 @@ Mapnificent.prototype.loadData = function(){
     console.log('received binary', new Date().getTime());
     var message = MapnificentNetwork.decode(new Uint8Array(oEvent.target.response));
     console.log('decoded message', new Date().getTime());
+    loadProgress.modal('hide');
     d.resolve(message);
   };
+  oReq.addEventListener("progress", function updateProgress (oEvent) {
+    if (oEvent.lengthComputable) {
+      var percentComplete = oEvent.loaded / oEvent.total * 100;
+      updateProgressBar(loadProgress, percentComplete);
+    } else {
+      updateProgressBar(loadProgress, 100);
+      loadProgress.find('.progress').addClass('active progress-striped');
+    }
+  });
 
   oReq.send();
   return d;
