@@ -6,7 +6,7 @@ layout: base
   <div class="container">
     <div class="jumbotron index-page">
       <h1>
-        <img src="{{ site.baseurl }}static/img/mapnificent_big.png" alt="Mapnificent" class="img-responsive">
+        <img src="{{ site.baseurl }}/static/img/mapnificent_big.png" alt="Mapnificent" class="img-responsive">
       </h1>
       <p>
         Shows you areas you can reach with public transport in a given time.
@@ -32,7 +32,7 @@ layout: base
       {% for city in site.cities %}
         {% unless city.hidden %}
         <div class="col-sm-6 col-md-4 col-xs-12">
-          <a href="{{ site.baseurl }}{{ city.url|replace_first:"/","" }}" class="thumbnail">
+          <a href="{{ site.baseurl }}/{{ city.url|replace_first:"/","" }}" class="thumbnail">
             <!-- <img src="#" alt="Mapnificent {{ city.cityname }}"/> -->
             <div class="caption">
               <h3>{{ city.cityname }}</h3>
@@ -54,7 +54,7 @@ layout: base
   </div>
 </footer>
 
-<script src="{{ site.baseurl }}static/vendor/leaflet/dist/leaflet.js" type="text/javascript" charset="utf-8"></script>
+<script src="{{ site.baseurl }}/static/vendor/leaflet/dist/leaflet.js" type="text/javascript" charset="utf-8"></script>
 
 <script type="text/javascript">
   $('#map').height($(window).height() - 200);
@@ -75,7 +75,7 @@ layout: base
   });
 
   var tileUrl = '{{ site.tileUrl }}';
-  L.Icon.Default.imagePath = '{{ site.baseurl }}static/vendor/leaflet/dist/images/';
+  L.Icon.Default.imagePath = '{{ site.baseurl }}/static/vendor/leaflet/dist/images/';
   var map = L.map('map', {
     center: [20, 11],
     zoom: 2,

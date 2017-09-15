@@ -26,7 +26,7 @@ layout: base
           <a data-toggle="modal" href="#about">About</a>
         </li>
         <li>
-          <a href="{{ site.baseurl }}">More Cities</a>
+          <a href="{{ site.baseurl }}/">More Cities</a>
         </li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
@@ -87,12 +87,12 @@ layout: base
 </div><!-- /.modal -->
 
 
-<script src="{{ site.baseurl }}static/vendor/leaflet/dist/leaflet.js" type="text/javascript" charset="utf-8"></script>
-<script src="{{ site.baseurl }}static/vendor/leaflet-hash/leaflet-hash.js" type="text/javascript" charset="utf-8"></script>
-<script src="{{ site.baseurl }}static/vendor/bytebuffer/dist/ByteBufferAB.min.js" type="text/javascript" charset="utf-8"></script>
-<script src="{{ site.baseurl }}static/vendor/protobuf/dist/ProtoBuf.js" type="text/javascript" charset="utf-8"></script>
-<script src="{{ site.baseurl }}static/js/quadtree.js" type="text/javascript" charset="utf-8"></script>
-<script src="{{ site.baseurl }}static/js/mapnificent.js" type="text/javascript" charset="utf-8"></script>
+<script src="{{ site.baseurl }}/static/vendor/leaflet/dist/leaflet.js" type="text/javascript" charset="utf-8"></script>
+<script src="{{ site.baseurl }}/static/vendor/leaflet-hash/leaflet-hash.js" type="text/javascript" charset="utf-8"></script>
+<script src="{{ site.baseurl }}/static/vendor/bytebuffer/dist/ByteBufferAB.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="{{ site.baseurl }}/static/vendor/protobuf/dist/ProtoBuf.js" type="text/javascript" charset="utf-8"></script>
+<script src="{{ site.baseurl }}/static/js/quadtree.js" type="text/javascript" charset="utf-8"></script>
+<script src="{{ site.baseurl }}/static/js/mapnificent.js" type="text/javascript" charset="utf-8"></script>
 
 <script>
 
@@ -108,7 +108,7 @@ $(function(){
 
   var tileUrl = '{{ site.tileUrl }}';
 
-  L.Icon.Default.imagePath = '{{ site.baseurl }}static/vendor/leaflet/dist/images/';
+  L.Icon.Default.imagePath = '{{ site.baseurl }}/static/vendor/leaflet/dist/images/';
   var map = L.map('mapnificent-map', {
     center: [city.coordinates[1], city.coordinates[0]],
     zoom: city.zoom
@@ -123,7 +123,7 @@ $(function(){
   map.addLayer(defaultTileLayer);
 
   var mapnificent = new Mapnificent(map, city, {
-    baseurl: '{{ site.baseurl }}'
+    baseurl: '{{ site.baseurl }}/'
   });
   mapnificent.init();
 });
