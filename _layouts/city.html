@@ -117,8 +117,6 @@ $(function(){
     zoom: city.zoom
   });
 
-  var hash = new L.Hash(map);
-
   defaultTileLayer = new L.TileLayer(tileUrl, {
     maxZoom: 17, minZoom: 4,
     attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attribution">CARTO</a>'});
@@ -128,6 +126,7 @@ $(function(){
   var mapnificent = new Mapnificent(map, city, {
     baseurl: '{{ site.baseurl }}/'
   });
+
   mapnificent.init();
 });
 

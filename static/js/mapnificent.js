@@ -22,7 +22,7 @@ function MapnificentPosition(mapnificent, latlng, time) {
   this.latlng = latlng;
   this.stationMap = null;
   this.progress = 0;
-  this.time = time === undefined ? 15 * 60 : 0;
+  this.time = time === undefined ? 15 * 60 : time;
   this.init();
 }
 
@@ -45,13 +45,32 @@ MapnificentPosition.prototype.init = function(){
   this.startCalculation();
 };
 
-MapnificentPosition.prototype.updatePosition = function(latlng){
+MapnificentPosition.prototype.updatePosition = function(latlng, time){
+  var needsRedraw = false, needsRecalc = false;
+  if (time !== undefined) {
+    if (time !== this.time) {
+      needsRedraw = true;
+    }
+    this.time = time;
+  }
+  if (this.latlng.lat !== latlng.lat || this.latlng.lng !== latlng.lng) {
+    needsRecalc = true;
+    needsRedraw = true;
+  }
   this.latlng = latlng;
-  this.stationMap = null;
-  this.progress = 0;
-  this.startCalculation();
-  this.marker.openPopup();
-  this.mapnificent.redraw();
+  if (needsRecalc) {
+    this.marker.setLatLng(this.latlng);
+    this.stationMap = null;
+    this.progress = 0;
+    this.startCalculation();
+    this.marker.openPopup();
+  }
+  if (needsRedraw) {
+    this.mapnificent.redraw();
+  }
+  if (needsRedraw || needsRecalc) {
+    this.mapnificent.triggerHashUpdate();
+  }
 };
 
 MapnificentPosition.prototype.updateProgress = function(percent){
@@ -88,6 +107,7 @@ MapnificentPosition.prototype.setTime = function(time) {
   if (time !== this.time) {
     this.time = time;
     this.mapnificent.redraw();
+    this.mapnificent.triggerHashUpdate();
   }
 };
 
@@ -306,11 +326,15 @@ Mapnificent.prototype.init = function(){
         self.logDebugMessage(e.latlng);
       }
     });
+    self.augmentLeafletHash();
     if (self.settings.coordinates) {
-      self.addPosition(L.latLng(
-        self.settings.coordinates[1],
-        self.settings.coordinates[0]
-      ));
+      self.hash.update();
+      if (self.positions.length === 0) {
+        self.addPosition(L.latLng(
+          self.settings.coordinates[1],
+          self.settings.coordinates[0]
+        ));
+      }
     }
   });
 };
@@ -437,8 +461,9 @@ Mapnificent.prototype.redraw = function(){
   }
 };
 
-Mapnificent.prototype.addPosition = function(latlng){
-  this.positions.push(new MapnificentPosition(this, latlng));
+Mapnificent.prototype.addPosition = function(latlng, time){
+  this.positions.push(new MapnificentPosition(this, latlng, time));
+  this.triggerHashUpdate();
 };
 
 Mapnificent.prototype.removePosition = function(pos) {
@@ -447,7 +472,12 @@ Mapnificent.prototype.removePosition = function(pos) {
   });
   pos.destroy();
   this.redraw();
+  this.triggerHashUpdate();
 };
+
+Mapnificent.prototype.triggerHashUpdate = function() {
+  this.hash.onMapMove();
+}
 
 Mapnificent.prototype.drawTile = function() {
   var self = this;
@@ -499,6 +529,89 @@ Mapnificent.prototype.drawTile = function() {
     }
   };
 };
+
+Mapnificent.prototype.augmentLeafletHash = function() {
+  var mapnificent = this;
+  var formatHash = function(map) {
+    var center = map.getCenter(),
+        zoom = map.getZoom(),
+        precision = Math.max(0, Math.ceil(Math.log(zoom) / Math.LN2));
+
+    var params = [
+      zoom,
+      center.lat.toFixed(precision),
+      center.lng.toFixed(precision)
+    ];
+
+    mapnificent.positions.forEach(function(pos) {
+      params.push(pos.time);
+      params.push(pos.latlng.lat.toFixed(precision));
+      params.push(pos.latlng.lng.toFixed(precision));
+    });
+
+    return "#" + params.join("/");
+  }
+  var parseHash = function(hash) {
+    if(hash.indexOf('#') === 0) {
+      hash = hash.substr(1);
+    }
+    var args = hash.split("/");
+    var parsed;
+    if (args.length < 3) {
+      return false;
+    }
+    var zoom = parseInt(args[0], 10),
+    lat = parseFloat(args[1]),
+    lon = parseFloat(args[2]);
+    if (isNaN(zoom) || isNaN(lat) || isNaN(lon)) {
+      parsed = false;
+    } else {
+      parsed = {
+        center: new L.LatLng(lat, lon),
+        zoom: zoom
+      };
+    }
+    var posIndex = 0;
+    for (var i = 3; i < args.length; i += 3) {
+      var time = parseInt(args[i], 10);
+      lat = parseFloat(args[i + 1]);
+      lon = parseFloat(args[i + 2]);
+      if (isNaN(time) || isNaN(lat) || isNaN(lon)) {
+        continue
+      }
+      if (mapnificent.positions[posIndex] === undefined) {
+        mapnificent.addPosition(new L.LatLng(lat, lon), time);
+      } else {
+        mapnificent.positions[posIndex].updatePosition(new L.LatLng(lat, lon), time);
+      }
+      posIndex += 1;
+    }
+    for (i = posIndex; i < mapnificent.positions.length; i += 1) {
+      mapnificent.removePosition(mapnificent.positions[i]);
+    }
+    return parsed;
+  };
+
+  L.Hash.prototype.formatHash = formatHash;
+  L.Hash.prototype.parseHash = parseHash;
+  this.hash = new L.Hash(this.map);
+};
+
+//
+// onMapMove: function() {
+//   // bail if we're moving the map (updating from a hash),
+//   // or if the map is not yet loaded
+//
+//   if (this.movingMap || !this.map._loaded) {
+//     return false;
+//   }
+//
+//   var hash = this.formatHash(this.map);
+//   if (this.lastHash != hash) {
+//     location.replace(hash);
+//     this.lastHash = hash;
+//   }
+// },
 
 window.Mapnificent = Mapnificent;
 
