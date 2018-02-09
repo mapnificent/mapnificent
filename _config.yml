@@ -15,7 +15,7 @@ collections:
     permalink: /:path/
 
 
-gems:
+plugins:
   - jekyll-redirect-from
 
 # Ignore our `vendor` folder from Bundler
