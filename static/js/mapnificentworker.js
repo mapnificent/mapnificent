@@ -40,6 +40,8 @@ var mapnificentWorker = (function(undefined) {
             time: seconds,
             walkTime: walkTime,
             line: line,
+            waittime: arrival.waittime,
+            stay: stay
           });
         }
         /* ## Same line look ahead
@@ -120,6 +122,7 @@ var mapnificentWorker = (function(undefined) {
         for (j = 0; j < travelOptionLength; j += 1) {
           rStation = station.TravelOptions[j];
           nextwalkTime = walkTime;
+          waittime = 0
           if (rStation.Stop === fromStation) {
             // don't go back, can't possibly be faster
             continue;
@@ -171,6 +174,7 @@ var mapnificentWorker = (function(undefined) {
             stationId: rStation.Stop,
             line: !rStation.Line ? -1 : rStation.Line,
             stay: rStation.StayTime || 0,
+            waittime: waittime,
             seconds: nextSeconds,
             walkTime: nextwalkTime,
             fromStation: stationId

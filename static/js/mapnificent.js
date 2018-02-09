@@ -348,16 +348,27 @@ Mapnificent.prototype.logDebugMessage = function(latlng) {
       console.log('No debug map present');
     }
     stationsAround.forEach(function(station, j){
+      var lastTransport;
       console.log('Found station', station.Name);
+      if (pos.debugMap[station.id] === undefined) {
+        console.log('Not reached');
+        return;
+      }
       pos.debugMap[station.id].forEach(function(stop, k){
         var fromName = '$walking'
         if (stop.from !== -1) {
           fromName = self.stationList[stop.from].Name
         }
+        if (lastTransport != stop.line) {
+          console.log(k, 'Switching transport to', self.lineNames[stop.line],
+                      'waiting: ', stop.waittime);
+        }
+        lastTransport = stop.line;
         console.log(k, fromName, '->',
                     self.stationList[stop.to].Name,
                     'via', self.lineNames[stop.line],
-                    'in', stop.time, '(' + stop.walkTime + ')');
+                    'in', stop.time, ' (stay: ' + stop.stay,
+                    ', total walk time: ' + stop.walkTime + ')');
       });
     });
   });
