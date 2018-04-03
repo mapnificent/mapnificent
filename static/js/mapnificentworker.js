@@ -28,7 +28,11 @@ var mapnificentWorker = (function(undefined) {
         walkTime = arrival.walkTime;
         fromStation = arrival.fromStation;
         station = stations[stationId];
-        travelOptionLength = station.TravelOptions.length;
+        if (station.TravelOptions !== undefined) {
+          travelOptionLength = station.TravelOptions.length;
+        } else {
+          travelOptionLength = 0;
+        }
         if (debug) {
           trace = arrival.trace;
           if (trace === undefined) {
@@ -57,14 +61,15 @@ var mapnificentWorker = (function(undefined) {
                            stationMap[stationId] <= seconds){
           for (j = 0; j < travelOptionLength; j += 1){
             rStation = station.TravelOptions[j];
+            rStation.Stop = rStation.Stop || 0;
             if(rStation.Stop != fromStation && rStation.Line === line){
-              nextSeconds = seconds + rStation.TravelTime + stay;
+              nextSeconds = seconds + (rStation.TravelTime || 0) + stay;
               if (stationMap[rStation.Stop] === undefined ||
                   stationMap[rStation.Stop] > nextSeconds) {
                 next = {
                   stationId: rStation.Stop,
                   line: rStation.Line,
-                  stay: rStation.StayTime,
+                  stay: rStation.StayTime || 0,
                   seconds: nextSeconds,
                   walkTime: walkTime,
                   fromStation: stationId
@@ -121,6 +126,7 @@ var mapnificentWorker = (function(undefined) {
         // check all connections from this station
         for (j = 0; j < travelOptionLength; j += 1) {
           rStation = station.TravelOptions[j];
+          rStation.Stop = rStation.Stop || 0;
           nextwalkTime = walkTime;
           waittime = 0
           if (rStation.Stop === fromStation) {
@@ -144,10 +150,10 @@ var mapnificentWorker = (function(undefined) {
               continue;
             }
             // I don't have to wait (design decision)
-            nextSeconds = seconds + rStation.TravelTime;
+            nextSeconds = seconds + (rStation.TravelTime || 0);
           } else if (rStation.Line === line) {
             // Same line! The current transport may pause here for some time
-            nextSeconds = seconds + rStation.TravelTime + stay;
+            nextSeconds = seconds + (rStation.TravelTime || 0) + stay;
           } else {
             waittime = lines[rStation.Line];
             if (waittime === undefined) {
@@ -164,7 +170,7 @@ var mapnificentWorker = (function(undefined) {
             } else {
               waittime = 0;
             }
-            nextSeconds = seconds + waittime + rStation.TravelTime;
+            nextSeconds = seconds + waittime + (rStation.TravelTime || 0);
             if (nextSeconds < 0){
               nextSeconds = 0; // whut??
             }
