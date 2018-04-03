@@ -354,21 +354,35 @@ Mapnificent.prototype.logDebugMessage = function(latlng) {
         console.log('Not reached');
         return;
       }
+      var totalTime = 0
       pos.debugMap[station.id].forEach(function(stop, k){
         var fromName = '$walking'
+        var distance
+        var toStop = self.stationList[stop.to]
         if (stop.from !== -1) {
-          fromName = self.stationList[stop.from].Name
+          var fromStop = self.stationList[stop.from]
+          fromName = fromStop.Name
+          distance = self.quadtree.distanceBetweenCoordinates(
+            fromStop.Latitude, fromStop.Longitude,
+            toStop.Latitude, toStop.Longitude
+          )
         }
         if (lastTransport != stop.line) {
           console.log(k, 'Switching transport to', self.lineNames[stop.line],
                       'waiting: ', stop.waittime);
         }
         lastTransport = stop.line;
+        var currentTime = stop.time - totalTime;
+        totalTime = stop.time;
         console.log(k, fromName, '->',
-                    self.stationList[stop.to].Name,
+                    toStop.Name,
                     'via', self.lineNames[stop.line],
-                    'in', stop.time, ' (stay: ' + stop.stay,
-                    ', total walk time: ' + stop.walkTime + ')');
+                    'in', currentTime,
+                    ' (' +
+                    'stay: ' + stop.stay +
+                    ', total time: ' + stop.time +
+                    ', total walk time: ' + stop.walkTime +
+                    ', distance: ' + distance +' meters)');
       });
     });
   });
