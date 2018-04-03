@@ -1,6 +1,6 @@
 /*!
- * protobuf.js v6.8.0 (c) 2016, daniel wirtz
- * compiled fri, 09 jun 2017 21:00:38 utc
+ * protobuf.js v6.8.6 (c) 2016, daniel wirtz
+ * compiled mon, 26 feb 2018 11:35:34 utc
  * licensed under the bsd-3-clause license
  * see: https://github.com/dcodeio/protobuf.js for details
  */
@@ -280,10 +280,9 @@ function codegen(functionParams, functionName) {
                     scopeValues[scopeOffset] = formatStringOrScope[scopeKeys[scopeOffset++]];
                 }
                 scopeParams[scopeOffset] = source;
-                return Function.apply(null, scopeParams)
-                               .apply(null, scopeValues);
+                return Function.apply(null, scopeParams).apply(null, scopeValues); // eslint-disable-line no-new-func
             }
-            return Function(source)();
+            return Function(source)(); // eslint-disable-line no-new-func
         }
 
         // otherwise append to body
@@ -310,7 +309,7 @@ function codegen(functionParams, functionName) {
 
     function toString(functionNameOverride) {
         return "function " + (functionNameOverride || functionName || "") + "(" + (functionParams && functionParams.join(",") || "") + "){\n  " + body.join("\n  ") + "\n}";
-    };
+    }
 
     Codegen.toString = toString;
     return Codegen;
@@ -1122,6 +1121,7 @@ var commonRe = /\/|\./;
  * @property {INamespace} google/protobuf/any.proto Any
  * @property {INamespace} google/protobuf/duration.proto Duration
  * @property {INamespace} google/protobuf/empty.proto Empty
+ * @property {INamespace} google/protobuf/field_mask.proto FieldMask
  * @property {INamespace} google/protobuf/struct.proto Struct, Value, NullValue and ListValue
  * @property {INamespace} google/protobuf/timestamp.proto Timestamp
  * @property {INamespace} google/protobuf/wrappers.proto Wrappers
@@ -1143,7 +1143,6 @@ function common(name, json) {
 // Not provided because of limited use (feel free to discuss or to provide yourself):
 //
 // google/protobuf/descriptor.proto
-// google/protobuf/field_mask.proto
 // google/protobuf/source_context.proto
 // google/protobuf/type.proto
 //
@@ -1469,6 +1468,26 @@ common("wrappers", {
     }
 });
 
+common("field_mask", {
+
+    /**
+     * Properties of a google.protobuf.FieldMask message.
+     * @interface IDoubleValue
+     * @type {Object}
+     * @property {number} [value]
+     * @memberof common
+     */
+    FieldMask: {
+        fields: {
+            paths: {
+                rule: "repeated",
+                type: "string",
+                id: 1
+            }
+        }
+    }
+});
+
 /**
  * Gets the root definition of the specified common proto file.
  *
@@ -1476,6 +1495,7 @@ common("wrappers", {
  * - google/protobuf/any.proto
  * - google/protobuf/duration.proto
  * - google/protobuf/empty.proto
+ * - google/protobuf/field_mask.proto
  * - google/protobuf/struct.proto
  * - google/protobuf/timestamp.proto
  * - google/protobuf/wrappers.proto
@@ -1993,7 +2013,8 @@ module.exports = Enum;
 var ReflectionObject = require(24);
 ((Enum.prototype = Object.create(ReflectionObject.prototype)).constructor = Enum).className = "Enum";
 
-var util = require(37);
+var Namespace = require(23),
+    util = require(37);
 
 /**
  * Constructs a new enum instance.
@@ -2003,8 +2024,10 @@ var util = require(37);
  * @param {string} name Unique name within its namespace
  * @param {Object.<string,number>} [values] Enum values as an object, by name
  * @param {Object.<string,*>} [options] Declared options
+ * @param {string} [comment] The comment for this enum
+ * @param {Object.<string,string>} [comments] The value comments for this enum
  */
-function Enum(name, values, options) {
+function Enum(name, values, options, comment, comments) {
     ReflectionObject.call(this, name, options);
 
     if (values && typeof values !== "object")
@@ -2023,10 +2046,22 @@ function Enum(name, values, options) {
     this.values = Object.create(this.valuesById); // toJSON, marker
 
     /**
+     * Enum comment text.
+     * @type {string|null}
+     */
+    this.comment = comment;
+
+    /**
      * Value comment texts, if any.
      * @type {Object.<string,string>}
      */
-    this.comments = {};
+    this.comments = comments || {};
+
+    /**
+     * Reserved ranges, if any.
+     * @type {Array.<number[]|string>}
+     */
+    this.reserved = undefined; // toJSON
 
     // Note that values inherit valuesById on their prototype which makes them a TypeScript-
     // compatible enum. This is used by pbts to write actual enum definitions that work for
@@ -2053,17 +2088,24 @@ function Enum(name, values, options) {
  * @throws {TypeError} If arguments are invalid
  */
 Enum.fromJSON = function fromJSON(name, json) {
-    return new Enum(name, json.values, json.options);
+    var enm = new Enum(name, json.values, json.options, json.comment, json.comments);
+    enm.reserved = json.reserved;
+    return enm;
 };
 
 /**
  * Converts this enum to an enum descriptor.
+ * @param {IToJSONOptions} [toJSONOptions] JSON conversion options
  * @returns {IEnum} Enum descriptor
  */
-Enum.prototype.toJSON = function toJSON() {
+Enum.prototype.toJSON = function toJSON(toJSONOptions) {
+    var keepComments = toJSONOptions ? Boolean(toJSONOptions.keepComments) : false;
     return util.toObject([
-        "options" , this.options,
-        "values"  , this.values
+        "options"  , this.options,
+        "values"   , this.values,
+        "reserved" , this.reserved && this.reserved.length ? this.reserved : undefined,
+        "comment"  , keepComments ? this.comment : undefined,
+        "comments" , keepComments ? this.comments : undefined
     ]);
 };
 
@@ -2076,7 +2118,7 @@ Enum.prototype.toJSON = function toJSON() {
  * @throws {TypeError} If arguments are invalid
  * @throws {Error} If there is already a value with this name or id
  */
-Enum.prototype.add = function(name, id, comment) {
+Enum.prototype.add = function add(name, id, comment) {
     // utilized by the parser but not by .fromJSON
 
     if (!util.isString(name))
@@ -2086,11 +2128,17 @@ Enum.prototype.add = function(name, id, comment) {
         throw TypeError("id must be an integer");
 
     if (this.values[name] !== undefined)
-        throw Error("duplicate name");
+        throw Error("duplicate name '" + name + "' in " + this);
+
+    if (this.isReservedId(id))
+        throw Error("id " + id + " is reserved in " + this);
+
+    if (this.isReservedName(name))
+        throw Error("name '" + name + "' is reserved in " + this);
 
     if (this.valuesById[id] !== undefined) {
         if (!(this.options && this.options.allow_alias))
-            throw Error("duplicate id");
+            throw Error("duplicate id " + id + " in " + this);
         this.values[name] = id;
     } else
         this.valuesById[this.values[name] = id] = name;
@@ -2106,14 +2154,14 @@ Enum.prototype.add = function(name, id, comment) {
  * @throws {TypeError} If arguments are invalid
  * @throws {Error} If `name` is not a name of this enum
  */
-Enum.prototype.remove = function(name) {
+Enum.prototype.remove = function remove(name) {
 
     if (!util.isString(name))
         throw TypeError("name must be a string");
 
     var val = this.values[name];
-    if (val === undefined)
-        throw Error("name does not exist");
+    if (val == null)
+        throw Error("name '" + name + "' does not exist in " + this);
 
     delete this.valuesById[val];
     delete this.values[name];
@@ -2122,7 +2170,25 @@ Enum.prototype.remove = function(name) {
     return this;
 };
 
-},{"24":24,"37":37}],16:[function(require,module,exports){
+/**
+ * Tests if the specified id is reserved.
+ * @param {number} id Id to test
+ * @returns {boolean} `true` if reserved, otherwise `false`
+ */
+Enum.prototype.isReservedId = function isReservedId(id) {
+    return Namespace.isReservedId(this.reserved, id);
+};
+
+/**
+ * Tests if the specified name is reserved.
+ * @param {string} name Name to test
+ * @returns {boolean} `true` if reserved, otherwise `false`
+ */
+Enum.prototype.isReservedName = function isReservedName(name) {
+    return Namespace.isReservedName(this.reserved, name);
+};
+
+},{"23":23,"24":24,"37":37}],16:[function(require,module,exports){
 "use strict";
 module.exports = Field;
 
@@ -2160,7 +2226,7 @@ var ruleRe = /^required|optional|repeated$/;
  * @throws {TypeError} If arguments are invalid
  */
 Field.fromJSON = function fromJSON(name, json) {
-    return new Field(name, json.id, json.type, json.rule, json.extend, json.options);
+    return new Field(name, json.id, json.type, json.rule, json.extend, json.options, json.comment);
 };
 
 /**
@@ -2175,13 +2241,16 @@ Field.fromJSON = function fromJSON(name, json) {
  * @param {string|Object.<string,*>} [rule="optional"] Field rule
  * @param {string|Object.<string,*>} [extend] Extended type if different from parent
  * @param {Object.<string,*>} [options] Declared options
+ * @param {string} [comment] Comment associated with this field
  */
-function Field(name, id, type, rule, extend, options) {
+function Field(name, id, type, rule, extend, options, comment) {
 
     if (util.isObject(rule)) {
+        comment = extend;
         options = rule;
         rule = extend = undefined;
     } else if (util.isObject(extend)) {
+        comment = options;
         options = extend;
         extend = undefined;
     }
@@ -2308,6 +2377,12 @@ function Field(name, id, type, rule, extend, options) {
      * @private
      */
     this._packed = null;
+
+    /**
+     * Comment for this field.
+     * @type {string|null}
+     */
+    this.comment = comment;
 }
 
 /**
@@ -2352,15 +2427,18 @@ Field.prototype.setOption = function setOption(name, value, ifNotSet) {
 
 /**
  * Converts this field to a field descriptor.
+ * @param {IToJSONOptions} [toJSONOptions] JSON conversion options
  * @returns {IField} Field descriptor
  */
-Field.prototype.toJSON = function toJSON() {
+Field.prototype.toJSON = function toJSON(toJSONOptions) {
+    var keepComments = toJSONOptions ? Boolean(toJSONOptions.keepComments) : false;
     return util.toObject([
         "rule"    , this.rule !== "optional" && this.rule || undefined,
         "type"    , this.type,
         "id"      , this.id,
         "extend"  , this.extend,
-        "options" , this.options
+        "options" , this.options,
+        "comment" , keepComments ? this.comment : undefined
     ]);
 };
 
@@ -2661,9 +2739,10 @@ var types   = require(36),
  * @param {string} keyType Key type
  * @param {string} type Value type
  * @param {Object.<string,*>} [options] Declared options
+ * @param {string} [comment] Comment associated with this field
  */
-function MapField(name, id, keyType, type, options) {
-    Field.call(this, name, id, type, options);
+function MapField(name, id, keyType, type, options, comment) {
+    Field.call(this, name, id, type, undefined, undefined, options, comment);
 
     /* istanbul ignore if */
     if (!util.isString(keyType))
@@ -2707,20 +2786,23 @@ function MapField(name, id, keyType, type, options) {
  * @throws {TypeError} If arguments are invalid
  */
 MapField.fromJSON = function fromJSON(name, json) {
-    return new MapField(name, json.id, json.keyType, json.type, json.options);
+    return new MapField(name, json.id, json.keyType, json.type, json.options, json.comment);
 };
 
 /**
  * Converts this map field to a map field descriptor.
+ * @param {IToJSONOptions} [toJSONOptions] JSON conversion options
  * @returns {IMapField} Map field descriptor
  */
-MapField.prototype.toJSON = function toJSON() {
+MapField.prototype.toJSON = function toJSON(toJSONOptions) {
+    var keepComments = toJSONOptions ? Boolean(toJSONOptions.keepComments) : false;
     return util.toObject([
         "keyType" , this.keyType,
         "type"    , this.type,
         "id"      , this.id,
         "extend"  , this.extend,
-        "options" , this.options
+        "options" , this.options,
+        "comment" , keepComments ? this.comment : undefined
     ]);
 };
 
@@ -2926,8 +3008,9 @@ var util = require(37);
  * @param {boolean|Object.<string,*>} [requestStream] Whether the request is streamed
  * @param {boolean|Object.<string,*>} [responseStream] Whether the response is streamed
  * @param {Object.<string,*>} [options] Declared options
+ * @param {string} [comment] The comment for this method
  */
-function Method(name, type, requestType, responseType, requestStream, responseStream, options) {
+function Method(name, type, requestType, responseType, requestStream, responseStream, options, comment) {
 
     /* istanbul ignore next */
     if (util.isObject(requestStream)) {
@@ -2993,6 +3076,12 @@ function Method(name, type, requestType, responseType, requestStream, responseSt
      * @type {Type|null}
      */
     this.resolvedResponseType = null;
+
+    /**
+     * Comment for this method
+     * @type {string|null}
+     */
+    this.comment = comment;
 }
 
 /**
@@ -3014,21 +3103,24 @@ function Method(name, type, requestType, responseType, requestStream, responseSt
  * @throws {TypeError} If arguments are invalid
  */
 Method.fromJSON = function fromJSON(name, json) {
-    return new Method(name, json.type, json.requestType, json.responseType, json.requestStream, json.responseStream, json.options);
+    return new Method(name, json.type, json.requestType, json.responseType, json.requestStream, json.responseStream, json.options, json.comment);
 };
 
 /**
  * Converts this method to a method descriptor.
+ * @param {IToJSONOptions} [toJSONOptions] JSON conversion options
  * @returns {IMethod} Method descriptor
  */
-Method.prototype.toJSON = function toJSON() {
+Method.prototype.toJSON = function toJSON(toJSONOptions) {
+    var keepComments = toJSONOptions ? Boolean(toJSONOptions.keepComments) : false;
     return util.toObject([
         "type"           , this.type !== "rpc" && /* istanbul ignore next */ this.type || undefined,
         "requestType"    , this.requestType,
         "requestStream"  , this.requestStream,
         "responseType"   , this.responseType,
         "responseStream" , this.responseStream,
-        "options"        , this.options
+        "options"        , this.options,
+        "comment"        , keepComments ? this.comment : undefined
     ]);
 };
 
@@ -3089,18 +3181,47 @@ Namespace.fromJSON = function fromJSON(name, json) {
  * Converts an array of reflection objects to JSON.
  * @memberof Namespace
  * @param {ReflectionObject[]} array Object array
+ * @param {IToJSONOptions} [toJSONOptions] JSON conversion options
  * @returns {Object.<string,*>|undefined} JSON object or `undefined` when array is empty
  */
-function arrayToJSON(array) {
+function arrayToJSON(array, toJSONOptions) {
     if (!(array && array.length))
         return undefined;
     var obj = {};
     for (var i = 0; i < array.length; ++i)
-        obj[array[i].name] = array[i].toJSON();
+        obj[array[i].name] = array[i].toJSON(toJSONOptions);
     return obj;
 }
 
 Namespace.arrayToJSON = arrayToJSON;
+
+/**
+ * Tests if the specified id is reserved.
+ * @param {Array.<number[]|string>|undefined} reserved Array of reserved ranges and names
+ * @param {number} id Id to test
+ * @returns {boolean} `true` if reserved, otherwise `false`
+ */
+Namespace.isReservedId = function isReservedId(reserved, id) {
+    if (reserved)
+        for (var i = 0; i < reserved.length; ++i)
+            if (typeof reserved[i] !== "string" && reserved[i][0] <= id && reserved[i][1] >= id)
+                return true;
+    return false;
+};
+
+/**
+ * Tests if the specified name is reserved.
+ * @param {Array.<number[]|string>|undefined} reserved Array of reserved ranges and names
+ * @param {string} name Name to test
+ * @returns {boolean} `true` if reserved, otherwise `false`
+ */
+Namespace.isReservedName = function isReservedName(reserved, name) {
+    if (reserved)
+        for (var i = 0; i < reserved.length; ++i)
+            if (reserved[i] === name)
+                return true;
+    return false;
+};
 
 /**
  * Not an actual constructor. Use {@link Namespace} instead.
@@ -3169,12 +3290,13 @@ Object.defineProperty(Namespace.prototype, "nestedArray", {
 
 /**
  * Converts this namespace to a namespace descriptor.
+ * @param {IToJSONOptions} [toJSONOptions] JSON conversion options
  * @returns {INamespace} Namespace descriptor
  */
-Namespace.prototype.toJSON = function toJSON() {
+Namespace.prototype.toJSON = function toJSON(toJSONOptions) {
     return util.toObject([
         "options" , this.options,
-        "nested"  , arrayToJSON(this.nestedArray)
+        "nested"  , arrayToJSON(this.nestedArray, toJSONOptions)
     ]);
 };
 
@@ -3225,7 +3347,7 @@ Namespace.prototype.get = function get(name) {
 Namespace.prototype.getEnum = function getEnum(name) {
     if (this.nested && this.nested[name] instanceof Enum)
         return this.nested[name].values;
-    throw Error("no such enum");
+    throw Error("no such enum: " + name);
 };
 
 /**
@@ -3399,7 +3521,7 @@ Namespace.prototype.lookup = function lookup(path, filterTypes, parentAlreadyChe
 Namespace.prototype.lookupType = function lookupType(path) {
     var found = this.lookup(path, [ Type ]);
     if (!found)
-        throw Error("no such type");
+        throw Error("no such type: " + path);
     return found;
 };
 
@@ -3670,8 +3792,9 @@ var Field = require(16),
  * @param {string} name Oneof name
  * @param {string[]|Object.<string,*>} [fieldNames] Field names
  * @param {Object.<string,*>} [options] Declared options
+ * @param {string} [comment] Comment associated with this field
  */
-function OneOf(name, fieldNames, options) {
+function OneOf(name, fieldNames, options, comment) {
     if (!Array.isArray(fieldNames)) {
         options = fieldNames;
         fieldNames = undefined;
@@ -3694,6 +3817,12 @@ function OneOf(name, fieldNames, options) {
      * @readonly
      */
     this.fieldsArray = []; // declared readonly for conformance, possibly not yet added to parent
+
+    /**
+     * Comment for this field.
+     * @type {string|null}
+     */
+    this.comment = comment;
 }
 
 /**
@@ -3711,17 +3840,20 @@ function OneOf(name, fieldNames, options) {
  * @throws {TypeError} If arguments are invalid
  */
 OneOf.fromJSON = function fromJSON(name, json) {
-    return new OneOf(name, json.oneof, json.options);
+    return new OneOf(name, json.oneof, json.options, json.comment);
 };
 
 /**
  * Converts this oneof to a oneof descriptor.
+ * @param {IToJSONOptions} [toJSONOptions] JSON conversion options
  * @returns {IOneOf} Oneof descriptor
  */
-OneOf.prototype.toJSON = function toJSON() {
+OneOf.prototype.toJSON = function toJSON(toJSONOptions) {
+    var keepComments = toJSONOptions ? Boolean(toJSONOptions.keepComments) : false;
     return util.toObject([
         "options" , this.options,
-        "oneof"   , this.oneof
+        "oneof"   , this.oneof,
+        "comment" , keepComments ? this.comment : undefined
     ]);
 };
 
@@ -3873,8 +4005,8 @@ var base10Re    = /^[1-9][0-9]*$/,
     base8NegRe  = /^-?0[0-7]+$/,
     numberRe    = /^(?![eE])[0-9]*(?:\.[0-9]*)?(?:[eE][+-]?[0-9]+)?$/,
     nameRe      = /^[a-zA-Z_][a-zA-Z_0-9]*$/,
-    typeRefRe   = /^(?:\.?[a-zA-Z_][a-zA-Z_0-9]*)+$/,
-    fqTypeRefRe = /^(?:\.[a-zA-Z][a-zA-Z_0-9]*)+$/;
+    typeRefRe   = /^(?:\.?[a-zA-Z_][a-zA-Z_0-9]*)(?:\.[a-zA-Z_][a-zA-Z_0-9]*)*$/,
+    fqTypeRefRe = /^(?:\.[a-zA-Z_][a-zA-Z_0-9]*)+$/;
 
 /**
  * Result object returned from {@link parse}.
@@ -3890,6 +4022,13 @@ var base10Re    = /^[1-9][0-9]*$/,
  * Options modifying the behavior of {@link parse}.
  * @interface IParseOptions
  * @property {boolean} [keepCase=false] Keeps field casing instead of converting to camel case
+ * @property {boolean} [alternateCommentMode=false] Recognize double-slash comments in addition to doc-block comments.
+ */
+
+/**
+ * Options modifying the behavior of JSON serialization.
+ * @interface IToJSONOptions
+ * @property {boolean} [keepComments=false] Serializes comments.
  */
 
 /**
@@ -3910,7 +4049,7 @@ function parse(source, root, options) {
     if (!options)
         options = parse.defaults;
 
-    var tn = tokenize(source),
+    var tn = tokenize(source, options.alternateCommentMode || false),
         next = tn.next,
         push = tn.push,
         peek = tn.peek,
@@ -4331,11 +4470,19 @@ function parse(source, root, options) {
 
         var enm = new Enum(token);
         ifBlock(enm, function parseEnum_block(token) {
-            if (token === "option") {
-                parseOption(enm, token);
-                skip(";");
-            } else
-                parseEnumValue(enm, token);
+          switch(token) {
+            case "option":
+              parseOption(enm, token);
+              skip(";");
+              break;
+
+            case "reserved":
+              readRanges(enm.reserved || (enm.reserved = []), true);
+              break;
+
+            default:
+              parseEnumValue(enm, token);
+          }
         });
         parent.add(enm);
     }
@@ -4396,7 +4543,10 @@ function parse(source, root, options) {
                     parseOptionValue(parent, name + "." + token);
                 else {
                     skip(":");
-                    setOption(parent, name + "." + token, readValue(true));
+                    if (peek() === "{")
+                        parseOptionValue(parent, name + "." + token);
+                    else
+                        setOption(parent, name + "." + token, readValue(true));
                 }
             } while (!skip("}", true));
         } else
@@ -5656,19 +5806,23 @@ Service.fromJSON = function fromJSON(name, json) {
             service.add(Method.fromJSON(names[i], json.methods[names[i]]));
     if (json.nested)
         service.addJSON(json.nested);
+    service.comment = json.comment;
     return service;
 };
 
 /**
  * Converts this service to a service descriptor.
+ * @param {IToJSONOptions} [toJSONOptions] JSON conversion options
  * @returns {IService} Service descriptor
  */
-Service.prototype.toJSON = function toJSON() {
-    var inherited = Namespace.prototype.toJSON.call(this);
+Service.prototype.toJSON = function toJSON(toJSONOptions) {
+    var inherited = Namespace.prototype.toJSON.call(this, toJSONOptions);
+    var keepComments = toJSONOptions ? Boolean(toJSONOptions.keepComments) : false;
     return util.toObject([
         "options" , inherited && inherited.options || undefined,
-        "methods" , Namespace.arrayToJSON(this.methodsArray) || /* istanbul ignore next */ {},
-        "nested"  , inherited && inherited.nested || undefined
+        "methods" , Namespace.arrayToJSON(this.methodsArray, toJSONOptions) || /* istanbul ignore next */ {},
+        "nested"  , inherited && inherited.nested || undefined,
+        "comment" , keepComments ? this.comment : undefined
     ]);
 };
 
@@ -5751,7 +5905,8 @@ Service.prototype.remove = function remove(object) {
 Service.prototype.create = function create(rpcImpl, requestDelimited, responseDelimited) {
     var rpcService = new rpc.Service(rpcImpl, requestDelimited, responseDelimited);
     for (var i = 0, method; i < /* initializes */ this.methodsArray.length; ++i) {
-        rpcService[util.lcFirst((method = this._methodsArray[i]).resolve().name)] = util.codegen(["r","c"], util.lcFirst(method.name))("return this.rpcCall(m,q,s,r,c)")({
+        var methodName = util.lcFirst((method = this._methodsArray[i]).resolve().name).replace(/[^$\w_]/g, "");
+        rpcService[methodName] = util.codegen(["r","c"], util.isReserved(methodName) ? methodName + "_" : methodName)("return this.rpcCall(m,q,s,r,c)")({
             m: method,
             q: method.resolvedRequestType.ctor,
             s: method.resolvedResponseType.ctor
@@ -5769,6 +5924,7 @@ var delimRe        = /[\s{}=;:[\],'"()<>]/g,
     stringSingleRe = /(?:'([^'\\]*(?:\\.[^'\\]*)*)')/g;
 
 var setCommentRe = /^ *[*/]+ */,
+    setCommentAltRe = /^\s*\*?\/*/,
     setCommentSplitRe = /\n/g,
     whitespaceRe = /\s/,
     unescapeRe = /\\(.?)/g;
@@ -5855,9 +6011,10 @@ tokenize.unescape = unescape;
 /**
  * Tokenizes the given .proto source and returns an object with useful utility functions.
  * @param {string} source Source contents
+ * @param {boolean} alternateCommentMode Whether we should activate alternate comment parsing mode.
  * @returns {ITokenizerHandle} Tokenizer handle
  */
-function tokenize(source) {
+function tokenize(source, alternateCommentMode) {
     /* eslint-disable callback-return */
     source = source.toString();
 
@@ -5922,10 +6079,17 @@ function tokenize(source) {
         commentType = source.charAt(start++);
         commentLine = line;
         commentLineEmpty = false;
-        var offset = start - 3, // "///" or "/**"
+        var lookback;
+        if (alternateCommentMode) {
+            lookback = 2;  // alternate comment parsing: "//" or "/*"
+        } else {
+            lookback = 3;  // "///" or "/**"
+        }
+        var commentOffset = start - lookback,
             c;
         do {
-            if (--offset < 0 || (c = source.charAt(offset)) === "\n") {
+            if (--commentOffset < 0 ||
+                    (c = source.charAt(commentOffset)) === "\n") {
                 commentLineEmpty = true;
                 break;
             }
@@ -5934,10 +6098,32 @@ function tokenize(source) {
             .substring(start, end)
             .split(setCommentSplitRe);
         for (var i = 0; i < lines.length; ++i)
-            lines[i] = lines[i].replace(setCommentRe, "").trim();
+            lines[i] = lines[i]
+                .replace(alternateCommentMode ? setCommentAltRe : setCommentRe, "")
+                .trim();
         commentText = lines
             .join("\n")
             .trim();
+    }
+
+    function isDoubleSlashCommentLine(startOffset) {
+        var endOffset = findEndOfLine(startOffset);
+
+        // see if remaining line matches comment pattern
+        var lineText = source.substring(startOffset, endOffset);
+        // look for 1 or 2 slashes since startOffset would already point past
+        // the first slash that started the comment.
+        var isComment = /^\s*\/{1,2}/.test(lineText);
+        return isComment;
+    }
+
+    function findEndOfLine(cursor) {
+        // find end of cursor's line
+        var endOffset = cursor;
+        while (endOffset < length && charAt(endOffset) !== "\n") {
+            endOffset++;
+        }
+        return endOffset;
     }
 
     /**
@@ -5965,35 +6151,71 @@ function tokenize(source) {
                 if (++offset === length)
                     return null;
             }
+
             if (charAt(offset) === "/") {
-                if (++offset === length)
+                if (++offset === length) {
                     throw illegal("comment");
+                }
                 if (charAt(offset) === "/") { // Line
-                    isDoc = charAt(start = offset + 1) === "/";
-                    while (charAt(++offset) !== "\n")
-                        if (offset === length)
-                            return null;
-                    ++offset;
-                    if (isDoc) /// Comment
-                        setComment(start, offset - 1);
-                    ++line;
-                    repeat = true;
+                    if (!alternateCommentMode) {
+                        // check for triple-slash comment
+                        isDoc = charAt(start = offset + 1) === "/";
+
+                        while (charAt(++offset) !== "\n") {
+                            if (offset === length) {
+                                return null;
+                            }
+                        }
+                        ++offset;
+                        if (isDoc) {
+                            setComment(start, offset - 1);
+                        }
+                        ++line;
+                        repeat = true;
+                    } else {
+                        // check for double-slash comments, consolidating consecutive lines
+                        start = offset;
+                        isDoc = false;
+                        if (isDoubleSlashCommentLine(offset)) {
+                            isDoc = true;
+                            do {
+                                offset = findEndOfLine(offset);
+                                if (offset === length) {
+                                    break;
+                                }
+                                offset++;
+                            } while (isDoubleSlashCommentLine(offset));
+                        } else {
+                            offset = Math.min(length, findEndOfLine(offset) + 1);
+                        }
+                        if (isDoc) {
+                            setComment(start, offset);
+                        }
+                        line++;
+                        repeat = true;
+                    }
                 } else if ((curr = charAt(offset)) === "*") { /* Block */
-                    isDoc = charAt(start = offset + 1) === "*";
+                    // check for /** (regular comment mode) or /* (alternate comment mode)
+                    start = offset + 1;
+                    isDoc = alternateCommentMode || charAt(start) === "*";
                     do {
-                        if (curr === "\n")
+                        if (curr === "\n") {
                             ++line;
-                        if (++offset === length)
+                        }
+                        if (++offset === length) {
                             throw illegal("comment");
+                        }
                         prev = curr;
                         curr = charAt(offset);
                     } while (prev !== "*" || curr !== "/");
                     ++offset;
-                    if (isDoc) /** Comment */
+                    if (isDoc) {
                         setComment(start, offset - 2);
+                    }
                     repeat = true;
-                } else
+                } else {
                     return "/";
+                }
             }
         } while (repeat);
 
@@ -6065,14 +6287,17 @@ function tokenize(source) {
     function cmnt(trailingLine) {
         var ret = null;
         if (trailingLine === undefined) {
-            if (commentLine === line - 1 && (commentType === "*" || commentLineEmpty))
+            if (commentLine === line - 1 && (alternateCommentMode || commentType === "*" || commentLineEmpty)) {
                 ret = commentText;
+            }
         } else {
             /* istanbul ignore else */
-            if (commentLine < trailingLine)
+            if (commentLine < trailingLine) {
                 peek();
-            if (commentLine === trailingLine && !commentLineEmpty && commentType === "/")
+            }
+            if (commentLine === trailingLine && !commentLineEmpty && (alternateCommentMode || commentType === "/")) {
                 ret = commentText;
+            }
         }
         return ret;
     }
@@ -6362,23 +6587,28 @@ Type.fromJSON = function fromJSON(name, json) {
         type.reserved = json.reserved;
     if (json.group)
         type.group = true;
+    if (json.comment)
+        type.comment = json.comment;
     return type;
 };
 
 /**
  * Converts this message type to a message type descriptor.
+ * @param {IToJSONOptions} [toJSONOptions] JSON conversion options
  * @returns {IType} Message type descriptor
  */
-Type.prototype.toJSON = function toJSON() {
-    var inherited = Namespace.prototype.toJSON.call(this);
+Type.prototype.toJSON = function toJSON(toJSONOptions) {
+    var inherited = Namespace.prototype.toJSON.call(this, toJSONOptions);
+    var keepComments = toJSONOptions ? Boolean(toJSONOptions.keepComments) : false;
     return util.toObject([
         "options"    , inherited && inherited.options || undefined,
-        "oneofs"     , Namespace.arrayToJSON(this.oneofsArray),
-        "fields"     , Namespace.arrayToJSON(this.fieldsArray.filter(function(obj) { return !obj.declaringField; })) || {},
+        "oneofs"     , Namespace.arrayToJSON(this.oneofsArray, toJSONOptions),
+        "fields"     , Namespace.arrayToJSON(this.fieldsArray.filter(function(obj) { return !obj.declaringField; }), toJSONOptions) || {},
         "extensions" , this.extensions && this.extensions.length ? this.extensions : undefined,
         "reserved"   , this.reserved && this.reserved.length ? this.reserved : undefined,
         "group"      , this.group || undefined,
-        "nested"     , inherited && inherited.nested || undefined
+        "nested"     , inherited && inherited.nested || undefined,
+        "comment"    , keepComments ? this.comment : undefined
     ]);
 };
 
@@ -6487,11 +6717,7 @@ Type.prototype.remove = function remove(object) {
  * @returns {boolean} `true` if reserved, otherwise `false`
  */
 Type.prototype.isReservedId = function isReservedId(id) {
-    if (this.reserved)
-        for (var i = 0; i < this.reserved.length; ++i)
-            if (typeof this.reserved[i] !== "string" && this.reserved[i][0] <= id && this.reserved[i][1] >= id)
-                return true;
-    return false;
+    return Namespace.isReservedId(this.reserved, id);
 };
 
 /**
@@ -6500,11 +6726,7 @@ Type.prototype.isReservedId = function isReservedId(id) {
  * @returns {boolean} `true` if reserved, otherwise `false`
  */
 Type.prototype.isReservedName = function isReservedName(name) {
-    if (this.reserved)
-        for (var i = 0; i < this.reserved.length; ++i)
-            if (this.reserved[i] === name)
-                return true;
-    return false;
+    return Namespace.isReservedName(this.reserved, name);
 };
 
 /**
@@ -6943,12 +7165,23 @@ var safePropBackslashRe = /\\/g,
     safePropQuoteRe     = /"/g;
 
 /**
- * Returns a safe property accessor for the specified properly name.
+ * Tests whether the specified name is a reserved word in JS.
+ * @param {string} name Name to test
+ * @returns {boolean} `true` if reserved, otherwise `false`
+ */
+util.isReserved = function isReserved(name) {
+    return /^(?:do|if|in|for|let|new|try|var|case|else|enum|eval|false|null|this|true|void|with|break|catch|class|const|super|throw|while|yield|delete|export|import|public|return|static|switch|typeof|default|extends|finally|package|private|continue|debugger|function|arguments|interface|protected|implements|instanceof)$/.test(name);
+};
+
+/**
+ * Returns a safe property accessor for the specified property name.
  * @param {string} prop Property name
  * @returns {string} Safe accessor
  */
 util.safeProp = function safeProp(prop) {
-    return "[\"" + prop.replace(safePropBackslashRe, "\\\\").replace(safePropQuoteRe, "\\\"") + "\"]";
+    if (!/^[$\w_]+$/.test(prop) || util.isReserved(prop))
+        return "[\"" + prop.replace(safePropBackslashRe, "\\\\").replace(safePropQuoteRe, "\\\"") + "\"]";
+    return "." + prop;
 };
 
 /**
@@ -7693,10 +7926,11 @@ function genVerifyValue(gen, field, fieldIndex, ref) {
             ("}");
         } else {
             gen
-            ((gen.hasErrorVar ? "" : "var ") + "e=types[%i].verify(%s);", fieldIndex, ref)
-            ("if(e)")
-                ("return%j+e", field.name + ".");
-            gen.hasErrorVar = true;
+            ("{")
+                ("var e=types[%i].verify(%s);", fieldIndex, ref)
+                ("if(e)")
+                    ("return%j+e", field.name + ".")
+            ("}");
         }
     } else {
         switch (field.type) {
@@ -7883,11 +8117,16 @@ wrappers[".google.protobuf.Any"] = {
         if (object && object["@type"]) {
             var type = this.lookup(object["@type"]);
             /* istanbul ignore else */
-            if (type)
+            if (type) {
+                // type_url does not accept leading "."
+                var type_url = object["@type"].charAt(0) === "." ?
+                    object["@type"].substr(1) : object["@type"];
+                // type_url prefix is optional, but path seperator is required
                 return this.create({
-                    type_url: object["@type"],
-                    value: type.encode(object).finish()
+                    type_url: "/" + type_url,
+                    value: type.encode(type.fromObject(object)).finish()
                 });
+            }
         }
 
         return this.fromObject(object);
@@ -7897,7 +8136,9 @@ wrappers[".google.protobuf.Any"] = {
 
         // decode value if requested and unmapped
         if (options && options.json && message.type_url && message.value) {
-            var type = this.lookup(message.type_url);
+            // Only use fully qualified type name after the last '/'
+            var name = message.type_url.substring(message.type_url.lastIndexOf("/") + 1);
+            var type = this.lookup(name);
             /* istanbul ignore else */
             if (type)
                 message = type.decode(message.value);
