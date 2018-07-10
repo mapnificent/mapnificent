@@ -1,6 +1,7 @@
 # test directories
 __tests__
 test
+test-infra
 tests
 powered-test
 
@@ -8,8 +9,6 @@ powered-test
 docs
 doc
 website
-images
-assets
 
 # examples
 example

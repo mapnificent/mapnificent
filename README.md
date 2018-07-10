@@ -2,8 +2,7 @@
 
 Install [bower](http://bower.io/) and [jekyll](http://jekyllrb.com/).
 
-    # You need node and npm
-    npm install -g bower
+    # You need yarn and npm (see https://yarnpkg.com/en/docs/install/)
     # You need ruby and bundler
     bundle install
 
@@ -14,8 +13,8 @@ Then get the cities data:
 
 Then run:
 
-    bower install
-    jekyll serve -w
+    yarn install
+    bundle exec jekyll serve -w
 
 
 ## How to add a city
