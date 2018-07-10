@@ -1,6 +1,6 @@
 # Mapnificent
 
-Install [bower](http://bower.io/) and [jekyll](http://jekyllrb.com/).
+Install [yarn](https://yarnpkg.com/) and [jekyll](https://jekyllrb.com/).
 
     # You need yarn and npm (see https://yarnpkg.com/en/docs/install/)
     # You need ruby and bundler
