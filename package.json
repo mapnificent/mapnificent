@@ -1,0 +1,21 @@
+{
+	"description": "Shows you areas you can reach with public transport in a given time",
+	"name": "mapnificent",
+	"author": "Stefan Wehrmeyer <mail@stefanwehrmeyer.com>",
+	"homepage": "http://www.mapnificent.net",
+	"license": "GPL",
+	"repository": {
+		"type": "git",
+		"url": "http://github.com/npm/npm.git"
+	},
+	"main": "static/js/mapnificent.js",
+	"private": true,
+	"dependencies": {
+	    "jquery": "~2.1.1",
+	    "leaflet": "~0.7.3",
+	    "bootstrap": "~3.2.0",
+	    "protobufjs": "~6.8.6",
+	    "bytebuffer": "~3.5.5"
+	},
+	"version": "0.0.1"
+}
