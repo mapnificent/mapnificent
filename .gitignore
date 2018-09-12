@@ -2,3 +2,4 @@ _site/
 static/vendor/
 .bundle/
 vendor/
+node_modules/
