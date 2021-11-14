@@ -1,3 +1,6 @@
+node_modules/
+.project
+.settings/
 _site/
 static/vendor/
 .bundle/
